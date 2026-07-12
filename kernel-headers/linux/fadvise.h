@@ -1,0 +1,12 @@
+/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+#ifndef _UAPI_LINUX_FADVISE_H
+#define _UAPI_LINUX_FADVISE_H
+
+#define POSIX_FADV_NORMAL	0
+#define POSIX_FADV_RANDOM	1
+#define POSIX_FADV_SEQUENTIAL	2
+#define POSIX_FADV_WILLNEED	3
+#define POSIX_FADV_DONTNEED	4
+#define POSIX_FADV_NOREUSE	5
+
+#endif

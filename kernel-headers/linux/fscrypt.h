@@ -1,704 +1,198 @@
-/* SPDX-License-Identifier: GPL-2.0 */
-
+/* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
+/*
+ * fscrypt user API
+ *
+ * These ioctls can be used on filesystems that support fscrypt.  See the
+ * "User API" section of Documentation/filesystems/fscrypt.rst.
+ */
 #ifndef _LINUX_FSCRYPT_H
 #define _LINUX_FSCRYPT_H
 
-#include <linux/fs.h>
-#include <linux/mm.h>
-#include <linux/parser.h>
-#include <linux/slab.h>
-#include <uapi/linux/fscrypt.h>
+#include <linux/ioctl.h>
+#include <linux/types.h>
 
-#define FS_CRYPTO_BLOCK_SIZE		16
+/* Encryption policy flags */
+#define FSCRYPT_POLICY_FLAGS_PAD_4		0x00
+#define FSCRYPT_POLICY_FLAGS_PAD_8		0x01
+#define FSCRYPT_POLICY_FLAGS_PAD_16		0x02
+#define FSCRYPT_POLICY_FLAGS_PAD_32		0x03
+#define FSCRYPT_POLICY_FLAGS_PAD_MASK		0x03
+#define FSCRYPT_POLICY_FLAG_DIRECT_KEY		0x04
+#define FSCRYPT_POLICY_FLAG_IV_INO_LBLK_64	0x08
+#define FSCRYPT_POLICY_FLAG_IV_INO_LBLK_32	0x10
+#define FSCRYPT_POLICY_FLAGS_VALID		0x1F
 
-union fscrypt_context;
-struct fscrypt_info;
-struct seq_file;
+/* Encryption algorithms */
+#define FSCRYPT_MODE_AES_256_XTS		1
+#define FSCRYPT_MODE_AES_256_CTS		4
+#define FSCRYPT_MODE_AES_128_CBC		5
+#define FSCRYPT_MODE_AES_128_CTS		6
+#define FSCRYPT_MODE_ADIANTUM			9
+#define FSCRYPT_MODE_PRIVATE			127
+#define __FSCRYPT_MODE_MAX			127
+/*
+ * Legacy policy version; ad-hoc KDF and no key verification.
+ * For new encrypted directories, use fscrypt_policy_v2 instead.
+ *
+ * Careful: the .version field for this is actually 0, not 1.
+ */
+#define FSCRYPT_POLICY_V1		0
+#define FSCRYPT_KEY_DESCRIPTOR_SIZE	8
+struct fscrypt_policy_v1 {
+	__u8 version;
+	__u8 contents_encryption_mode;
+	__u8 filenames_encryption_mode;
+	__u8 flags;
+	__u8 master_key_descriptor[FSCRYPT_KEY_DESCRIPTOR_SIZE];
+};
+#define fscrypt_policy	fscrypt_policy_v1
 
-struct fscrypt_str {
-	unsigned char *name;
-	u32 len;
+/*
+ * Process-subscribed "logon" key description prefix and payload format.
+ * Deprecated; prefer FS_IOC_ADD_ENCRYPTION_KEY instead.
+ */
+#define FSCRYPT_KEY_DESC_PREFIX		"fscrypt:"
+#define FSCRYPT_KEY_DESC_PREFIX_SIZE	8
+#define FSCRYPT_MAX_KEY_SIZE		64
+struct fscrypt_key {
+	__u32 mode;
+	__u8 raw[FSCRYPT_MAX_KEY_SIZE];
+	__u32 size;
 };
 
-struct fscrypt_name {
-	const struct qstr *usr_fname;
-	struct fscrypt_str disk_name;
-	u32 hash;
-	u32 minor_hash;
-	struct fscrypt_str crypto_buf;
-	bool is_ciphertext_name;
+/*
+ * New policy version with HKDF and key verification (recommended).
+ */
+#define FSCRYPT_POLICY_V2		2
+#define FSCRYPT_KEY_IDENTIFIER_SIZE	16
+struct fscrypt_policy_v2 {
+	__u8 version;
+	__u8 contents_encryption_mode;
+	__u8 filenames_encryption_mode;
+	__u8 flags;
+	__u8 __reserved[4];
+	__u8 master_key_identifier[FSCRYPT_KEY_IDENTIFIER_SIZE];
 };
 
-#define FSTR_INIT(n, l)		{ .name = n, .len = l }
-#define FSTR_TO_QSTR(f)		QSTR_INIT((f)->name, (f)->len)
-#define fname_name(p)		((p)->disk_name.name)
-#define fname_len(p)		((p)->disk_name.len)
-
-
-#define FSCRYPT_SET_CONTEXT_MAX_SIZE	40
-
-#ifdef CONFIG_FS_ENCRYPTION
-
-#define FS_CFLG_OWN_PAGES (1U << 1)
-
-
-struct fscrypt_operations {
-	unsigned int flags;
-	const char *key_prefix;
-	int (*get_context)(struct inode *inode, void *ctx, size_t len);
-	int (*set_context)(struct inode *inode, const void *ctx, size_t len,
-			   void *fs_data);
-	const union fscrypt_context *(*get_dummy_context)(
-		struct super_block *sb);
-	bool (*empty_dir)(struct inode *inode);
-	unsigned int max_namelen;
-	bool (*has_stable_inodes)(struct super_block *sb);
-	void (*get_ino_and_lblk_bits)(struct super_block *sb,
-				      int *ino_bits_ret, int *lblk_bits_ret);
-	bool (*inline_crypt_enabled)(struct super_block *sb);
-	int (*get_num_devices)(struct super_block *sb);
-	void (*get_devices)(struct super_block *sb,
-			    struct request_queue **devs);
+/* Struct passed to FS_IOC_GET_ENCRYPTION_POLICY_EX */
+struct fscrypt_get_policy_ex_arg {
+	__u64 policy_size; /* input/output */
+	union {
+		__u8 version;
+		struct fscrypt_policy_v1 v1;
+		struct fscrypt_policy_v2 v2;
+	} policy; /* output */
 };
 
-static inline bool fscrypt_has_encryption_key(const struct inode *inode)
-{
-	
-	return READ_ONCE(inode->i_crypt_info) != NULL;
-}
+/*
+ * v1 policy keys are specified by an arbitrary 8-byte key "descriptor",
+ * matching fscrypt_policy_v1::master_key_descriptor.
+ */
+#define FSCRYPT_KEY_SPEC_TYPE_DESCRIPTOR	1
 
+/*
+ * v2 policy keys are specified by a 16-byte key "identifier" which the kernel
+ * calculates as a cryptographic hash of the key itself,
+ * matching fscrypt_policy_v2::master_key_identifier.
+ */
+#define FSCRYPT_KEY_SPEC_TYPE_IDENTIFIER	2
 
-static inline bool fscrypt_needs_contents_encryption(const struct inode *inode)
-{
-	return IS_ENCRYPTED(inode) && S_ISREG(inode->i_mode);
-}
-
-static inline const union fscrypt_context *
-fscrypt_get_dummy_context(struct super_block *sb)
-{
-	if (!sb->s_cop->get_dummy_context)
-		return NULL;
-	return sb->s_cop->get_dummy_context(sb);
-}
-
-
-static inline void fscrypt_handle_d_move(struct dentry *dentry)
-{
-	dentry->d_flags &= ~DCACHE_ENCRYPTED_NAME;
-}
-
-
-void fscrypt_enqueue_decrypt_work(struct work_struct *);
-
-struct page *fscrypt_encrypt_pagecache_blocks(struct page *page,
-					      unsigned int len,
-					      unsigned int offs,
-					      gfp_t gfp_flags);
-int fscrypt_encrypt_block_inplace(const struct inode *inode, struct page *page,
-				  unsigned int len, unsigned int offs,
-				  u64 lblk_num, gfp_t gfp_flags);
-
-int fscrypt_decrypt_pagecache_blocks(struct page *page, unsigned int len,
-				     unsigned int offs);
-int fscrypt_decrypt_block_inplace(const struct inode *inode, struct page *page,
-				  unsigned int len, unsigned int offs,
-				  u64 lblk_num);
-
-static inline bool fscrypt_is_bounce_page(struct page *page)
-{
-	return page->mapping == NULL;
-}
-
-static inline struct page *fscrypt_pagecache_page(struct page *bounce_page)
-{
-	return (struct page *)page_private(bounce_page);
-}
-
-void fscrypt_free_bounce_page(struct page *bounce_page);
-int fscrypt_d_revalidate(struct dentry *dentry, unsigned int flags);
-
-
-int fscrypt_ioctl_set_policy(struct file *filp, const void __user *arg);
-int fscrypt_ioctl_get_policy(struct file *filp, void __user *arg);
-int fscrypt_ioctl_get_policy_ex(struct file *filp, void __user *arg);
-int fscrypt_ioctl_get_nonce(struct file *filp, void __user *arg);
-int fscrypt_has_permitted_context(struct inode *parent, struct inode *child);
-int fscrypt_inherit_context(struct inode *parent, struct inode *child,
-			    void *fs_data, bool preload);
-
-struct fscrypt_dummy_context {
-	const union fscrypt_context *ctx;
+/*
+ * Specifies a key, either for v1 or v2 policies.  This doesn't contain the
+ * actual key itself; this is just the "name" of the key.
+ */
+struct fscrypt_key_specifier {
+	__u32 type;	/* one of FSCRYPT_KEY_SPEC_TYPE_* */
+	__u32 __reserved;
+	union {
+		__u8 __reserved[32]; /* reserve some extra space */
+		__u8 descriptor[FSCRYPT_KEY_DESCRIPTOR_SIZE];
+		__u8 identifier[FSCRYPT_KEY_IDENTIFIER_SIZE];
+	} u;
 };
 
-int fscrypt_set_test_dummy_encryption(struct super_block *sb,
-				      const substring_t *arg,
-				      struct fscrypt_dummy_context *dummy_ctx);
-void fscrypt_show_test_dummy_encryption(struct seq_file *seq, char sep,
-					struct super_block *sb);
-static inline void
-fscrypt_free_dummy_context(struct fscrypt_dummy_context *dummy_ctx)
-{
-	kfree(dummy_ctx->ctx);
-	dummy_ctx->ctx = NULL;
-}
-
-
-void fscrypt_sb_free(struct super_block *sb);
-int fscrypt_ioctl_add_key(struct file *filp, void __user *arg);
-int fscrypt_ioctl_remove_key(struct file *filp, void __user *arg);
-int fscrypt_ioctl_remove_key_all_users(struct file *filp, void __user *arg);
-int fscrypt_ioctl_get_key_status(struct file *filp, void __user *arg);
-int fscrypt_register_key_removal_notifier(struct notifier_block *nb);
-int fscrypt_unregister_key_removal_notifier(struct notifier_block *nb);
-
-
-int fscrypt_get_encryption_info(struct inode *inode);
-void fscrypt_put_encryption_info(struct inode *inode);
-void fscrypt_free_inode(struct inode *inode);
-int fscrypt_drop_inode(struct inode *inode);
-
-
-int fscrypt_setup_filename(struct inode *inode, const struct qstr *iname,
-			   int lookup, struct fscrypt_name *fname);
-
-static inline void fscrypt_free_filename(struct fscrypt_name *fname)
-{
-	kfree(fname->crypto_buf.name);
-}
-
-int fscrypt_fname_alloc_buffer(const struct inode *inode, u32 max_encrypted_len,
-			       struct fscrypt_str *crypto_str);
-void fscrypt_fname_free_buffer(struct fscrypt_str *crypto_str);
-int fscrypt_fname_disk_to_usr(const struct inode *inode,
-			      u32 hash, u32 minor_hash,
-			      const struct fscrypt_str *iname,
-			      struct fscrypt_str *oname);
-bool fscrypt_match_name(const struct fscrypt_name *fname,
-			const u8 *de_name, u32 de_name_len);
-u64 fscrypt_fname_siphash(const struct inode *dir, const struct qstr *name);
-
-
-void fscrypt_decrypt_bio(struct bio *bio);
-int fscrypt_zeroout_range(const struct inode *inode, pgoff_t lblk,
-			  sector_t pblk, unsigned int len);
-
-
-int fscrypt_file_open(struct inode *inode, struct file *filp);
-int __fscrypt_prepare_link(struct inode *inode, struct inode *dir,
-			   struct dentry *dentry);
-int __fscrypt_prepare_rename(struct inode *old_dir, struct dentry *old_dentry,
-			     struct inode *new_dir, struct dentry *new_dentry,
-			     unsigned int flags);
-int __fscrypt_prepare_lookup(struct inode *dir, struct dentry *dentry,
-			     struct fscrypt_name *fname);
-int fscrypt_prepare_setflags(struct inode *inode,
-			     unsigned int oldflags, unsigned int flags);
-int __fscrypt_prepare_symlink(struct inode *dir, unsigned int len,
-			      unsigned int max_len,
-			      struct fscrypt_str *disk_link);
-int __fscrypt_encrypt_symlink(struct inode *inode, const char *target,
-			      unsigned int len, struct fscrypt_str *disk_link);
-const char *fscrypt_get_symlink(struct inode *inode, const void *caddr,
-				unsigned int max_size,
-				struct delayed_call *done);
-#else  
-
-static inline bool fscrypt_has_encryption_key(const struct inode *inode)
-{
-	return false;
-}
-
-static inline bool fscrypt_needs_contents_encryption(const struct inode *inode)
-{
-	return false;
-}
-
-static inline const union fscrypt_context *
-fscrypt_get_dummy_context(struct super_block *sb)
-{
-	return NULL;
-}
-
-static inline void fscrypt_handle_d_move(struct dentry *dentry)
-{
-}
-
-
-static inline void fscrypt_enqueue_decrypt_work(struct work_struct *work)
-{
-}
-
-static inline struct page *fscrypt_encrypt_pagecache_blocks(struct page *page,
-							    unsigned int len,
-							    unsigned int offs,
-							    gfp_t gfp_flags)
-{
-	return ERR_PTR(-EOPNOTSUPP);
-}
-
-static inline int fscrypt_encrypt_block_inplace(const struct inode *inode,
-						struct page *page,
-						unsigned int len,
-						unsigned int offs, u64 lblk_num,
-						gfp_t gfp_flags)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline int fscrypt_decrypt_pagecache_blocks(struct page *page,
-						   unsigned int len,
-						   unsigned int offs)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline int fscrypt_decrypt_block_inplace(const struct inode *inode,
-						struct page *page,
-						unsigned int len,
-						unsigned int offs, u64 lblk_num)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline bool fscrypt_is_bounce_page(struct page *page)
-{
-	return false;
-}
-
-static inline struct page *fscrypt_pagecache_page(struct page *bounce_page)
-{
-	WARN_ON_ONCE(1);
-	return ERR_PTR(-EINVAL);
-}
-
-static inline void fscrypt_free_bounce_page(struct page *bounce_page)
-{
-}
-
-
-static inline int fscrypt_ioctl_set_policy(struct file *filp,
-					   const void __user *arg)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline int fscrypt_ioctl_get_policy(struct file *filp, void __user *arg)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline int fscrypt_ioctl_get_policy_ex(struct file *filp,
-					      void __user *arg)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline int fscrypt_ioctl_get_nonce(struct file *filp, void __user *arg)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline int fscrypt_has_permitted_context(struct inode *parent,
-						struct inode *child)
-{
-	return 0;
-}
-
-static inline int fscrypt_inherit_context(struct inode *parent,
-					  struct inode *child,
-					  void *fs_data, bool preload)
-{
-	return -EOPNOTSUPP;
-}
-
-struct fscrypt_dummy_context {
+/*
+ * Payload of Linux keyring key of type "fscrypt-provisioning", referenced by
+ * fscrypt_add_key_arg::key_id as an alternative to fscrypt_add_key_arg::raw.
+ */
+struct fscrypt_provisioning_key_payload {
+	__u32 type;
+	__u32 __reserved;
+	__u8 raw[];
 };
 
-static inline void fscrypt_show_test_dummy_encryption(struct seq_file *seq,
-						      char sep,
-						      struct super_block *sb)
-{
-}
-
-static inline void
-fscrypt_free_dummy_context(struct fscrypt_dummy_context *dummy_ctx)
-{
-}
-
-
-static inline void fscrypt_sb_free(struct super_block *sb)
-{
-}
-
-static inline int fscrypt_ioctl_add_key(struct file *filp, void __user *arg)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline int fscrypt_ioctl_remove_key(struct file *filp, void __user *arg)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline int fscrypt_ioctl_remove_key_all_users(struct file *filp,
-						     void __user *arg)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline int fscrypt_ioctl_get_key_status(struct file *filp,
-					       void __user *arg)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline int fscrypt_register_key_removal_notifier(
-						struct notifier_block *nb)
-{
-	return 0;
-}
-
-static inline int fscrypt_unregister_key_removal_notifier(
-						struct notifier_block *nb)
-{
-	return 0;
-}
-
-
-static inline int fscrypt_get_encryption_info(struct inode *inode)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline void fscrypt_put_encryption_info(struct inode *inode)
-{
-	return;
-}
-
-static inline void fscrypt_free_inode(struct inode *inode)
-{
-}
-
-static inline int fscrypt_drop_inode(struct inode *inode)
-{
-	return 0;
-}
-
- 
-static inline int fscrypt_setup_filename(struct inode *dir,
-					 const struct qstr *iname,
-					 int lookup, struct fscrypt_name *fname)
-{
-	if (IS_ENCRYPTED(dir))
-		return -EOPNOTSUPP;
-
-	memset(fname, 0, sizeof(*fname));
-	fname->usr_fname = iname;
-	fname->disk_name.name = (unsigned char *)iname->name;
-	fname->disk_name.len = iname->len;
-	return 0;
-}
-
-static inline void fscrypt_free_filename(struct fscrypt_name *fname)
-{
-	return;
-}
-
-static inline int fscrypt_fname_alloc_buffer(const struct inode *inode,
-					     u32 max_encrypted_len,
-					     struct fscrypt_str *crypto_str)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline void fscrypt_fname_free_buffer(struct fscrypt_str *crypto_str)
-{
-	return;
-}
-
-static inline int fscrypt_fname_disk_to_usr(const struct inode *inode,
-					    u32 hash, u32 minor_hash,
-					    const struct fscrypt_str *iname,
-					    struct fscrypt_str *oname)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline bool fscrypt_match_name(const struct fscrypt_name *fname,
-				      const u8 *de_name, u32 de_name_len)
-{
-	
-	if (de_name_len != fname->disk_name.len)
-		return false;
-	return !memcmp(de_name, fname->disk_name.name, fname->disk_name.len);
-}
-
-static inline u64 fscrypt_fname_siphash(const struct inode *dir,
-					const struct qstr *name)
-{
-	WARN_ON_ONCE(1);
-	return 0;
-}
-
-
-static inline void fscrypt_decrypt_bio(struct bio *bio)
-{
-}
-
-static inline int fscrypt_zeroout_range(const struct inode *inode, pgoff_t lblk,
-					sector_t pblk, unsigned int len)
-{
-	return -EOPNOTSUPP;
-}
-
-
-
-static inline int fscrypt_file_open(struct inode *inode, struct file *filp)
-{
-	if (IS_ENCRYPTED(inode))
-		return -EOPNOTSUPP;
-	return 0;
-}
-
-static inline int __fscrypt_prepare_link(struct inode *inode, struct inode *dir,
-					 struct dentry *dentry)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline int __fscrypt_prepare_rename(struct inode *old_dir,
-					   struct dentry *old_dentry,
-					   struct inode *new_dir,
-					   struct dentry *new_dentry,
-					   unsigned int flags)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline int __fscrypt_prepare_lookup(struct inode *dir,
-					   struct dentry *dentry,
-					   struct fscrypt_name *fname)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline int fscrypt_prepare_setflags(struct inode *inode,
-					   unsigned int oldflags,
-					   unsigned int flags)
-{
-	return 0;
-}
-
-static inline int __fscrypt_prepare_symlink(struct inode *dir,
-					    unsigned int len,
-					    unsigned int max_len,
-					    struct fscrypt_str *disk_link)
-{
-	return -EOPNOTSUPP;
-}
-
-
-static inline int __fscrypt_encrypt_symlink(struct inode *inode,
-					    const char *target,
-					    unsigned int len,
-					    struct fscrypt_str *disk_link)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline const char *fscrypt_get_symlink(struct inode *inode,
-					      const void *caddr,
-					      unsigned int max_size,
-					      struct delayed_call *done)
-{
-	return ERR_PTR(-EOPNOTSUPP);
-}
-#endif	
-
-
-#ifdef CONFIG_FS_ENCRYPTION_INLINE_CRYPT
-extern bool fscrypt_inode_uses_inline_crypto(const struct inode *inode);
-
-extern bool fscrypt_inode_uses_fs_layer_crypto(const struct inode *inode);
-
-extern void fscrypt_set_bio_crypt_ctx(struct bio *bio,
-				      const struct inode *inode,
-				      u64 first_lblk, gfp_t gfp_mask);
-
-extern void fscrypt_set_bio_crypt_ctx_bh(struct bio *bio,
-					 const struct buffer_head *first_bh,
-					 gfp_t gfp_mask);
-
-extern bool fscrypt_mergeable_bio(struct bio *bio, const struct inode *inode,
-				  u64 next_lblk);
-
-extern bool fscrypt_mergeable_bio_bh(struct bio *bio,
-				     const struct buffer_head *next_bh);
-
-bool fscrypt_dio_supported(struct kiocb *iocb, struct iov_iter *iter);
-
-int fscrypt_limit_dio_pages(const struct inode *inode, loff_t pos,
-			    int nr_pages);
-
-#else 
-static inline bool fscrypt_inode_uses_inline_crypto(const struct inode *inode)
-{
-	return false;
-}
-
-static inline bool fscrypt_inode_uses_fs_layer_crypto(const struct inode *inode)
-{
-	return IS_ENCRYPTED(inode) && S_ISREG(inode->i_mode);
-}
-
-static inline void fscrypt_set_bio_crypt_ctx(struct bio *bio,
-					     const struct inode *inode,
-					     u64 first_lblk, gfp_t gfp_mask) { }
-
-static inline void fscrypt_set_bio_crypt_ctx_bh(
-					 struct bio *bio,
-					 const struct buffer_head *first_bh,
-					 gfp_t gfp_mask) { }
-
-static inline bool fscrypt_mergeable_bio(struct bio *bio,
-					 const struct inode *inode,
-					 u64 next_lblk)
-{
-	return true;
-}
-
-static inline bool fscrypt_mergeable_bio_bh(struct bio *bio,
-					    const struct buffer_head *next_bh)
-{
-	return true;
-}
-
-static inline bool fscrypt_dio_supported(struct kiocb *iocb,
-					 struct iov_iter *iter)
-{
-	const struct inode *inode = file_inode(iocb->ki_filp);
-
-	return !fscrypt_needs_contents_encryption(inode);
-}
-
-static inline int fscrypt_limit_dio_pages(const struct inode *inode, loff_t pos,
-					  int nr_pages)
-{
-	return nr_pages;
-}
-#endif 
-
-#if IS_ENABLED(CONFIG_FS_ENCRYPTION) && IS_ENABLED(CONFIG_DM_DEFAULT_KEY)
-static inline bool
-fscrypt_inode_should_skip_dm_default_key(const struct inode *inode)
-{
-	return IS_ENCRYPTED(inode) && S_ISREG(inode->i_mode);
-}
-#else
-static inline bool
-fscrypt_inode_should_skip_dm_default_key(const struct inode *inode)
-{
-	return false;
-}
-#endif
-
-
-static inline int fscrypt_require_key(struct inode *inode)
-{
-	if (IS_ENCRYPTED(inode)) {
-		int err = fscrypt_get_encryption_info(inode);
-
-		if (err)
-			return err;
-		if (!fscrypt_has_encryption_key(inode))
-			return -ENOKEY;
-	}
-	return 0;
-}
-
-
-static inline int fscrypt_prepare_link(struct dentry *old_dentry,
-				       struct inode *dir,
-				       struct dentry *dentry)
-{
-	if (IS_ENCRYPTED(dir))
-		return __fscrypt_prepare_link(d_inode(old_dentry), dir, dentry);
-	return 0;
-}
-
-
-static inline int fscrypt_prepare_rename(struct inode *old_dir,
-					 struct dentry *old_dentry,
-					 struct inode *new_dir,
-					 struct dentry *new_dentry,
-					 unsigned int flags)
-{
-	if (IS_ENCRYPTED(old_dir) || IS_ENCRYPTED(new_dir))
-		return __fscrypt_prepare_rename(old_dir, old_dentry,
-						new_dir, new_dentry, flags);
-	return 0;
-}
-
-
-static inline int fscrypt_prepare_lookup(struct inode *dir,
-					 struct dentry *dentry,
-					 struct fscrypt_name *fname)
-{
-	if (IS_ENCRYPTED(dir))
-		return __fscrypt_prepare_lookup(dir, dentry, fname);
-
-	memset(fname, 0, sizeof(*fname));
-	fname->usr_fname = &dentry->d_name;
-	fname->disk_name.name = (unsigned char *)dentry->d_name.name;
-	fname->disk_name.len = dentry->d_name.len;
-	return 0;
-}
-
-
-static inline int fscrypt_prepare_setattr(struct dentry *dentry,
-					  struct iattr *attr)
-{
-	if (attr->ia_valid & ATTR_SIZE)
-		return fscrypt_require_key(d_inode(dentry));
-	return 0;
-}
-
-
-static inline int fscrypt_prepare_symlink(struct inode *dir,
-					  const char *target,
-					  unsigned int len,
-					  unsigned int max_len,
-					  struct fscrypt_str *disk_link)
-{
-	if (IS_ENCRYPTED(dir) || fscrypt_get_dummy_context(dir->i_sb) != NULL)
-		return __fscrypt_prepare_symlink(dir, len, max_len, disk_link);
-
-	disk_link->name = (unsigned char *)target;
-	disk_link->len = len + 1;
-	if (disk_link->len > max_len)
-		return -ENAMETOOLONG;
-	return 0;
-}
-
-
-static inline int fscrypt_encrypt_symlink(struct inode *inode,
-					  const char *target,
-					  unsigned int len,
-					  struct fscrypt_str *disk_link)
-{
-	if (IS_ENCRYPTED(inode))
-		return __fscrypt_encrypt_symlink(inode, target, len, disk_link);
-	return 0;
-}
-
-
-static inline void fscrypt_finalize_bounce_page(struct page **pagep)
-{
-	struct page *page = *pagep;
-
-	if (fscrypt_is_bounce_page(page)) {
-		*pagep = fscrypt_pagecache_page(page);
-		fscrypt_free_bounce_page(page);
-	}
-}
-#endif	
+/* Struct passed to FS_IOC_ADD_ENCRYPTION_KEY */
+struct fscrypt_add_key_arg {
+	struct fscrypt_key_specifier key_spec;
+	__u32 raw_size;
+	__u32 key_id;
+	__u32 __reserved[7];
+	/* N.B.: "temporary" flag, not reserved upstream */
+#define __FSCRYPT_ADD_KEY_FLAG_HW_WRAPPED		0x00000001
+	__u32 __flags;
+	__u8 raw[];
+};
+
+/* Struct passed to FS_IOC_REMOVE_ENCRYPTION_KEY */
+struct fscrypt_remove_key_arg {
+	struct fscrypt_key_specifier key_spec;
+#define FSCRYPT_KEY_REMOVAL_STATUS_FLAG_FILES_BUSY	0x00000001
+#define FSCRYPT_KEY_REMOVAL_STATUS_FLAG_OTHER_USERS	0x00000002
+	__u32 removal_status_flags;	/* output */
+	__u32 __reserved[5];
+};
+
+/* Struct passed to FS_IOC_GET_ENCRYPTION_KEY_STATUS */
+struct fscrypt_get_key_status_arg {
+	/* input */
+	struct fscrypt_key_specifier key_spec;
+	__u32 __reserved[6];
+
+	/* output */
+#define FSCRYPT_KEY_STATUS_ABSENT		1
+#define FSCRYPT_KEY_STATUS_PRESENT		2
+#define FSCRYPT_KEY_STATUS_INCOMPLETELY_REMOVED	3
+	__u32 status;
+#define FSCRYPT_KEY_STATUS_FLAG_ADDED_BY_SELF   0x00000001
+	__u32 status_flags;
+	__u32 user_count;
+	__u32 __out_reserved[13];
+};
+
+#define FS_IOC_SET_ENCRYPTION_POLICY		_IOR('f', 19, struct fscrypt_policy)
+#define FS_IOC_GET_ENCRYPTION_PWSALT		_IOW('f', 20, __u8[16])
+#define FS_IOC_GET_ENCRYPTION_POLICY		_IOW('f', 21, struct fscrypt_policy)
+#define FS_IOC_GET_ENCRYPTION_POLICY_EX		_IOWR('f', 22, __u8[9]) /* size + version */
+#define FS_IOC_ADD_ENCRYPTION_KEY		_IOWR('f', 23, struct fscrypt_add_key_arg)
+#define FS_IOC_REMOVE_ENCRYPTION_KEY		_IOWR('f', 24, struct fscrypt_remove_key_arg)
+#define FS_IOC_REMOVE_ENCRYPTION_KEY_ALL_USERS	_IOWR('f', 25, struct fscrypt_remove_key_arg)
+#define FS_IOC_GET_ENCRYPTION_KEY_STATUS	_IOWR('f', 26, struct fscrypt_get_key_status_arg)
+#define FS_IOC_GET_ENCRYPTION_NONCE		_IOR('f', 27, __u8[16])
+
+/**********************************************************************/
+
+/* old names; don't add anything new here! */
+#define FS_KEY_DESCRIPTOR_SIZE		FSCRYPT_KEY_DESCRIPTOR_SIZE
+#define FS_POLICY_FLAGS_PAD_4		FSCRYPT_POLICY_FLAGS_PAD_4
+#define FS_POLICY_FLAGS_PAD_8		FSCRYPT_POLICY_FLAGS_PAD_8
+#define FS_POLICY_FLAGS_PAD_16		FSCRYPT_POLICY_FLAGS_PAD_16
+#define FS_POLICY_FLAGS_PAD_32		FSCRYPT_POLICY_FLAGS_PAD_32
+#define FS_POLICY_FLAGS_PAD_MASK	FSCRYPT_POLICY_FLAGS_PAD_MASK
+#define FS_POLICY_FLAG_DIRECT_KEY	FSCRYPT_POLICY_FLAG_DIRECT_KEY
+#define FS_POLICY_FLAGS_VALID		FSCRYPT_POLICY_FLAGS_VALID
+#define FS_ENCRYPTION_MODE_INVALID	0	/* never used */
+#define FS_ENCRYPTION_MODE_AES_256_XTS	FSCRYPT_MODE_AES_256_XTS
+#define FS_ENCRYPTION_MODE_AES_256_GCM	2	/* never used */
+#define FS_ENCRYPTION_MODE_AES_256_CBC	3	/* never used */
+#define FS_ENCRYPTION_MODE_AES_256_CTS	FSCRYPT_MODE_AES_256_CTS
+#define FS_ENCRYPTION_MODE_AES_128_CBC	FSCRYPT_MODE_AES_128_CBC
+#define FS_ENCRYPTION_MODE_AES_128_CTS	FSCRYPT_MODE_AES_128_CTS
+#define FS_ENCRYPTION_MODE_SPECK128_256_XTS	7	/* removed */
+#define FS_ENCRYPTION_MODE_SPECK128_256_CTS	8	/* removed */
+#define FS_ENCRYPTION_MODE_ADIANTUM	FSCRYPT_MODE_ADIANTUM
+#define FS_ENCRYPTION_MODE_PRIVATE	FSCRYPT_MODE_PRIVATE
+#define FS_KEY_DESC_PREFIX		FSCRYPT_KEY_DESC_PREFIX
+#define FS_KEY_DESC_PREFIX_SIZE		FSCRYPT_KEY_DESC_PREFIX_SIZE
+#define FS_MAX_KEY_SIZE			FSCRYPT_MAX_KEY_SIZE
+
+#endif /* _LINUX_FSCRYPT_H */
