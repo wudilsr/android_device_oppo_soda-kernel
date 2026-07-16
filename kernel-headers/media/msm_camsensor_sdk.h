@@ -25,15 +25,15 @@
 #define I2C_SEQ_REG_DATA_MAX    1024
 #define I2C_REG_DATA_MAX       (8*1024)
 
-#define MSM_V4L2_PIX_FMT_META v4l2_fourcc('M', 'E', 'T', 'A') 
+#define MSM_V4L2_PIX_FMT_META v4l2_fourcc('M', 'E', 'T', 'A') /* META */
 #define MSM_V4L2_PIX_FMT_SBGGR14 v4l2_fourcc('B', 'G', '1', '4')
-	
+	/* 14  BGBG.. GRGR.. */
 #define MSM_V4L2_PIX_FMT_SGBRG14 v4l2_fourcc('G', 'B', '1', '4')
-	
+	/* 14  GBGB.. RGRG.. */
 #define MSM_V4L2_PIX_FMT_SGRBG14 v4l2_fourcc('B', 'A', '1', '4')
-	
+	/* 14  GRGR.. BGBG.. */
 #define MSM_V4L2_PIX_FMT_SRGGB14 v4l2_fourcc('R', 'G', '1', '4')
-	
+	/* 14  RGRG.. GBGB.. */
 
 #define MAX_ACTUATOR_REG_TBL_SIZE 8
 #define MAX_ACTUATOR_REGION       5
@@ -291,11 +291,11 @@ struct msm_eeprom_memory_map_array {
 };
 
 struct msm_sensor_init_params {
-	
+	/* mask of modes supported: 2D, 3D */
 	int                 modes_supported;
-	
+	/* sensor position: front, back */
 	enum camb_position_t position;
-	
+	/* sensor mount angle */
 	unsigned int            sensor_mount_angle;
 };
 
@@ -414,10 +414,12 @@ struct damping_params_t {
 };
 
 struct region_params_t {
-	
+	/* [0] = ForwardDirection Macro boundary
+	 *  [1] = ReverseDirection Inf boundary
+	 */
 	unsigned short step_bound[2];
 	unsigned short code_per_step;
-	
+	/* qvalue for converting float type numbers to integer format */
 	unsigned int qvalue;
 };
 

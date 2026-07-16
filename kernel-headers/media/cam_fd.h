@@ -1,7 +1,12 @@
+/* SPDX-License-Identifier: GPL-2.0-only WITH Linux-syscall-note */
+/*
+ * Copyright (c) 2016-2019, The Linux Foundation. All rights reserved.
+ */
+
 #ifndef __UAPI_CAM_FD_H__
 #define __UAPI_CAM_FD_H__
 
-#include "cam_defs.h"
+#include <media/cam_defs.h>
 
 #define CAM_FD_MAX_FACES                       35
 #define CAM_FD_RAW_RESULT_ENTRIES              512
@@ -48,7 +53,7 @@ struct cam_fd_soc_clock_bw_request {
  * @prop3 : Property 3 of face
  * @prop4 : Property 4 of face
  *
- * Do not change this layout, this is __inline__ with how HW writes
+ * Do not change this layout, this is inline with how HW writes
  * these values directly when the buffer is programmed to HW
  */
 struct cam_fd_face {
@@ -65,7 +70,7 @@ struct cam_fd_face {
  * @face_count : Number of faces detected
  * @reserved   : Reserved for alignment
  *
- * Do not change this layout, this is __inline__ with how HW writes
+ * Do not change this layout, this is inline with how HW writes
  * these values directly when the buffer is programmed to HW
  */
 struct cam_fd_results {

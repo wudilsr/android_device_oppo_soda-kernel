@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 WITH Linux-syscall-note */
-
+/*
+ * Copyright (c) 2013-2019, The Linux Foundation. All rights reserved.
+ */
 
 #ifndef _RMNET_IPA_FD_IOCTL_H
 #define _RMNET_IPA_FD_IOCTL_H
@@ -8,7 +10,9 @@
 #include <linux/ipa_qmi_service_v01.h>
 #include <linux/msm_ipa.h>
 
-
+/**
+ * unique magic number of the IPA_WAN device
+ */
 #define WAN_IOC_MAGIC 0x69
 
 #define WAN_IOCTL_ADD_FLT_RULE		0
@@ -32,18 +36,39 @@
 #define WAN_IOCTL_ADD_OFFLOAD_CONNECTION     18
 #define WAN_IOCTL_RMV_OFFLOAD_CONNECTION     19
 
-
+/* User space may not have this defined. */
 #ifndef IFNAMSIZ
 #define IFNAMSIZ 16
 #endif
 
-
+/**
+ * struct wan_ioctl_poll_tethering_stats - structure used for
+ *                                         WAN_IOCTL_POLL_TETHERING_STATS IOCTL.
+ *
+ * @polling_interval_secs: Polling interval in seconds.
+ * @reset_stats:           Indicate whether to reset the stats (use 1) or not.
+ *
+ * The structure to be used by the user space in order to request for the
+ * tethering stats to be polled. Setting the interval to 0 indicates to stop
+ * the polling process.
+ */
 struct wan_ioctl_poll_tethering_stats {
 	uint64_t polling_interval_secs;
 	uint8_t  reset_stats;
 };
 
-
+/**
+ * struct wan_ioctl_set_data_quota - structure used for
+ *                                   WAN_IOCTL_SET_DATA_QUOTA IOCTL.
+ *
+ * @interface_name:  Name of the interface on which to set the quota.
+ * @quota_mbytes:    Quota (in Mbytes) for the above interface.
+ * @set_quota:       Indicate whether to set the quota (use 1) or
+ *                   unset the quota.
+ *
+ * The structure to be used by the user space in order to request
+ * a quota to be set on a specific interface (by specifying its name).
+ */
 struct wan_ioctl_set_data_quota {
 	char     interface_name[IFNAMSIZ];
 	uint64_t quota_mbytes;
@@ -51,7 +76,7 @@ struct wan_ioctl_set_data_quota {
 };
 
 struct wan_ioctl_set_tether_client_pipe {
-	
+	/* enum of tether interface */
 	enum ipacm_client_enum ipa_client;
 	uint8_t reset_client;
 	uint32_t ul_src_pipe_len;
@@ -61,11 +86,11 @@ struct wan_ioctl_set_tether_client_pipe {
 };
 
 struct wan_ioctl_query_tether_stats {
-	
+	/* Name of the upstream interface */
 	char upstreamIface[IFNAMSIZ];
-	
+	/* Name of the tethered interface */
 	char tetherIface[IFNAMSIZ];
-	
+	/* enum of tether interface */
 	enum ipacm_client_enum ipa_client;
 	uint64_t ipv4_tx_packets;
 	uint64_t ipv4_tx_bytes;
@@ -78,9 +103,9 @@ struct wan_ioctl_query_tether_stats {
 };
 
 struct wan_ioctl_query_tether_stats_all {
-	
+	/* Name of the upstream interface */
 	char upstreamIface[IFNAMSIZ];
-	
+	/* enum of tether interface */
 	enum ipacm_client_enum ipa_client;
 	uint8_t reset_stats;
 	uint64_t tx_bytes;
@@ -88,18 +113,18 @@ struct wan_ioctl_query_tether_stats_all {
 };
 
 struct wan_ioctl_reset_tether_stats {
-	
+	/* Name of the upstream interface, not support now */
 	char upstreamIface[IFNAMSIZ];
-	
+	/* Indicate whether to reset the stats (use 1) or not */
 	uint8_t reset_stats;
 };
 
 struct wan_ioctl_query_dl_filter_stats {
-	
+	/* Indicate whether to reset the filter stats (use 1) or not*/
 	uint8_t reset_stats;
-	
+	/* Modem response QMI */
 	struct ipa_get_data_stats_resp_msg_v01 stats_resp;
-	
+	/* provide right index to 1st firewall rule */
 	uint32_t index;
 };
 
@@ -107,50 +132,52 @@ struct wan_ioctl_notify_wan_state {
 	uint8_t up;
 };
 struct wan_ioctl_send_lan_client_msg {
-	
+	/* Lan client info. */
 	struct ipa_lan_client_msg lan_client;
-	
+	/* Event to indicate whether client is
+	 * connected or disconnected.
+	 */
 	enum ipa_per_client_stats_event client_event;
 };
 
 struct wan_ioctl_lan_client_info {
-	
+	/* Device type of the client. */
 	enum ipacm_per_client_device_type device_type;
-	
+	/* MAC Address of the client. */
 	uint8_t mac[IPA_MAC_ADDR_SIZE];
-	
+	/* Init client. */
 	uint8_t client_init;
-	
+	/* Client Index */
 	int8_t client_idx;
-	
+	/* Header length of the client. */
 	uint8_t hdr_len;
-	
+	/* Source pipe of the lan client. */
 	enum ipa_client_type ul_src_pipe;
 };
 
 struct wan_ioctl_per_client_info {
-	
+	/* MAC Address of the client. */
 	uint8_t mac[IPA_MAC_ADDR_SIZE];
-	
+	/* Ipv4 UL traffic bytes. */
 	uint64_t ipv4_tx_bytes;
-	
+	/* Ipv4 DL traffic bytes. */
 	uint64_t ipv4_rx_bytes;
-	
+	/* Ipv6 UL traffic bytes. */
 	uint64_t ipv6_tx_bytes;
-	
+	/* Ipv6 DL traffic bytes. */
 	uint64_t ipv6_rx_bytes;
 };
 
 struct wan_ioctl_query_per_client_stats {
-	
+	/* Device type of the client. */
 	enum ipacm_per_client_device_type device_type;
-	
+	/* Indicate whether to reset the stats (use 1) or not */
 	uint8_t reset_stats;
-	
+	/* Indicates whether client is disconnected. */
 	uint8_t disconnect_clnt;
-	
+	/* Number of clients. */
 	uint8_t num_clients;
-	
+	/* Client information. */
 	struct wan_ioctl_per_client_info
 		client_info[IPA_MAX_NUM_HW_PATH_CLIENTS];
 };
@@ -234,4 +261,4 @@ struct wan_ioctl_query_per_client_stats {
 #define WAN_IOC_RMV_OFFLOAD_CONNECTION _IOWR(WAN_IOC_MAGIC, \
 		WAN_IOCTL_RMV_OFFLOAD_CONNECTION, \
 		struct ipa_remove_offload_connection_req_msg_v01 *)
-#endif 
+#endif /* _RMNET_IPA_FD_IOCTL_H */

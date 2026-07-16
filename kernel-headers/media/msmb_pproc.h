@@ -6,9 +6,9 @@
 #include <linux/types.h>
 #include <media/msmb_generic_buf_mgr.h>
 
-
+/* Should be same as VIDEO_MAX_PLANES in videodev2.h */
 #define MAX_PLANES VIDEO_MAX_PLANES
-
+/* PARTIAL_FRAME_STRIPE_COUNT must be even */
 #define PARTIAL_FRAME_STRIPE_COUNT 4
 
 #define MAX_NUM_CPP_STRIPS 8
@@ -71,7 +71,7 @@ struct msm_cpp_frame_info_t {
 	int src_fd;
 	int dst_fd;
 	struct timeval in_time, out_time;
-	void __user *cookie;
+	void *cookie;
 	int32_t *status;
 	int32_t duplicate_output;
 	uint32_t duplicate_identity;
@@ -83,7 +83,19 @@ struct msm_cpp_frame_info_t {
 	struct msm_cpp_buffer_info_t tnr_scratch_buffer_info[2];
 	uint32_t reserved;
 	uint8_t partial_frame_indicator;
-	
+	/* the following are used only for partial_frame type
+	 * and is only used for offline frame processing and
+	 * only if payload big enough and need to be split into partial_frame
+	 * if first_payload, kernel acquires output buffer
+	 * first payload must have the last stripe
+	 * buffer addresses from 0 to last_stripe_index are updated.
+	 * kernel updates payload with msg_len and stripe_info
+	 * kernel sends top level, plane level, then only stripes
+	 * starting with first_stripe_index and
+	 * ends with last_stripe_index
+	 * kernel then sends trailing flag at frame done,
+	 * if last payload, kernel queues the output buffer to HAL
+	 */
 	uint8_t first_payload;
 	uint8_t last_payload;
 	uint32_t first_stripe_index;
@@ -237,7 +249,7 @@ struct msm_camera_v4l2_ioctl_t {
 	uint32_t id;
 	size_t len;
 	int32_t trans_code;
-	void __user *ioctl_ptr;
+	void *ioctl_ptr;
 };
 
 #endif

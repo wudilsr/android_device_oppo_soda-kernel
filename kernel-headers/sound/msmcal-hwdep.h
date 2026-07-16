@@ -15,7 +15,7 @@ enum wcd_cal_type {
 
 struct wcdcal_ioctl_buffer {
 	__u32 size;
-	__u8 *buffer;
+	__u8 __user *buffer;
 	enum wcd_cal_type cal_type;
 };
 
@@ -30,7 +30,7 @@ enum q6afe_cal_type {
 
 struct q6afecal_ioctl_buffer {
 	__u32 size;
-	__u8 *buffer;
+	__u8 __user *buffer;
 	enum q6afe_cal_type cal_type;
 };
 

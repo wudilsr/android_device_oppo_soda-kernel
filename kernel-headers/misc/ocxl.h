@@ -1,113 +1,80 @@
-// SPDX-License-Identifier: GPL-2.0+
-// Copyright 2017 IBM Corp.
-#ifndef _MISC_OCXL_H_
-#define _MISC_OCXL_H_
+/* SPDX-License-Identifier: GPL-2.0+ WITH Linux-syscall-note */
+/* Copyright 2017 IBM Corp. */
+#ifndef _MISC_OCXL_H
+#define _MISC_OCXL_H
 
-#include <linux/pci.h>
+#include <linux/types.h>
+#include <linux/ioctl.h>
 
-
-
-#define OCXL_AFU_NAME_SZ      (24+1)  
-
-
-struct ocxl_afu_config {
-	u8 idx;
-	int dvsec_afu_control_pos; 
-	char name[OCXL_AFU_NAME_SZ];
-	u8 version_major;
-	u8 version_minor;
-	u8 afuc_type;
-	u8 afum_type;
-	u8 profile;
-	u8 global_mmio_bar;     
-	u64 global_mmio_offset;
-	u32 global_mmio_size;
-	u8 pp_mmio_bar;         
-	u64 pp_mmio_offset;
-	u32 pp_mmio_stride;
-	u8 log_mem_size;
-	u8 pasid_supported_log;
-	u16 actag_supported;
+enum ocxl_event_type {
+	OCXL_AFU_EVENT_XSL_FAULT_ERROR = 0,
 };
 
-struct ocxl_fn_config {
-	int dvsec_tl_pos;       
-	int dvsec_function_pos; 
-	int dvsec_afu_info_pos; 
-	s8 max_pasid_log;
-	s8 max_afu_index;
+#define OCXL_KERNEL_EVENT_FLAG_LAST 0x0001  /* This is the last event pending */
+
+struct ocxl_kernel_event_header {
+	__u16 type;
+	__u16 flags;
+	__u32 reserved;
 };
 
+struct ocxl_kernel_event_xsl_fault_error {
+	__u64 addr;
+	__u64 dsisr;
+	__u64 count;
+	__u64 reserved;
+};
 
-extern int ocxl_config_read_function(struct pci_dev *dev,
-				struct ocxl_fn_config *fn);
+struct ocxl_ioctl_attach {
+	__u64 amr;
+	__u64 reserved1;
+	__u64 reserved2;
+	__u64 reserved3;
+};
 
+struct ocxl_ioctl_metadata {
+	__u16 version; // struct version, always backwards compatible
 
-extern int ocxl_config_check_afu_index(struct pci_dev *dev,
-				struct ocxl_fn_config *fn, int afu_idx);
+	// Version 0 fields
+	__u8  afu_version_major;
+	__u8  afu_version_minor;
+	__u32 pasid;		// PASID assigned to the current context
 
+	__u64 pp_mmio_size;	// Per PASID MMIO size
+	__u64 global_mmio_size;
 
-extern int ocxl_config_read_afu(struct pci_dev *dev,
-				struct ocxl_fn_config *fn,
-				struct ocxl_afu_config *afu,
-				u8 afu_idx);
+	// End version 0 fields
 
+	__u64 reserved[13]; // Total of 16*u64
+};
 
-extern int ocxl_config_get_pasid_info(struct pci_dev *dev, int *count);
+struct ocxl_ioctl_p9_wait {
+	__u16 thread_id; // The thread ID required to wake this thread
+	__u16 reserved1;
+	__u32 reserved2;
+	__u64 reserved3[3];
+};
 
+#define OCXL_IOCTL_FEATURES_FLAGS0_P9_WAIT	0x01
+struct ocxl_ioctl_features {
+	__u64 flags[4];
+};
 
-extern void ocxl_config_set_afu_pasid(struct pci_dev *dev,
-				int afu_control_offset,
-				int pasid_base, u32 pasid_count_log);
+struct ocxl_ioctl_irq_fd {
+	__u64 irq_offset;
+	__s32 eventfd;
+	__u32 reserved;
+};
 
+/* ioctl numbers */
+#define OCXL_MAGIC 0xCA
+/* AFU devices */
+#define OCXL_IOCTL_ATTACH	_IOW(OCXL_MAGIC, 0x10, struct ocxl_ioctl_attach)
+#define OCXL_IOCTL_IRQ_ALLOC	_IOR(OCXL_MAGIC, 0x11, __u64)
+#define OCXL_IOCTL_IRQ_FREE	_IOW(OCXL_MAGIC, 0x12, __u64)
+#define OCXL_IOCTL_IRQ_SET_FD	_IOW(OCXL_MAGIC, 0x13, struct ocxl_ioctl_irq_fd)
+#define OCXL_IOCTL_GET_METADATA _IOR(OCXL_MAGIC, 0x14, struct ocxl_ioctl_metadata)
+#define OCXL_IOCTL_ENABLE_P9_WAIT	_IOR(OCXL_MAGIC, 0x15, struct ocxl_ioctl_p9_wait)
+#define OCXL_IOCTL_GET_FEATURES _IOR(OCXL_MAGIC, 0x16, struct ocxl_ioctl_features)
 
-extern int ocxl_config_get_actag_info(struct pci_dev *dev,
-				u16 *base, u16 *enabled, u16 *supported);
-
-
-extern void ocxl_config_set_actag(struct pci_dev *dev, int func_offset,
-				u32 actag_base, u32 actag_count);
-
-
-extern void ocxl_config_set_afu_actag(struct pci_dev *dev,
-				int afu_control_offset,
-				int actag_base, int actag_count);
-
-
-extern void ocxl_config_set_afu_state(struct pci_dev *dev,
-				int afu_control_offset, int enable);
-
-
-extern int ocxl_config_set_TL(struct pci_dev *dev, int tl_dvsec);
-
-
-extern int ocxl_config_terminate_pasid(struct pci_dev *dev,
-				int afu_control_offset, int pasid);
-
-
-extern int ocxl_link_setup(struct pci_dev *dev, int PE_mask,
-			void **link_handle);
-
-
-extern void ocxl_link_release(struct pci_dev *dev, void *link_handle);
-
-
-extern int ocxl_link_add_pe(void *link_handle, int pasid, u32 pidr, u32 tidr,
-		u64 amr, struct mm_struct *mm,
-		void (*xsl_err_cb)(void *data, u64 addr, u64 dsisr),
-		void *xsl_err_data);
-
-
-extern int ocxl_link_update_pe(void *link_handle, int pasid, __u16 tid);
-
-
-extern int ocxl_link_remove_pe(void *link_handle, int pasid);
-
-
-extern int ocxl_link_irq_alloc(void *link_handle, int *hw_irq,
-			u64 *obj_handle);
-
-
-extern void ocxl_link_free_irq(void *link_handle, int hw_irq);
-
-#endif 
+#endif /* _MISC_OCXL_H */

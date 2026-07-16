@@ -1,5 +1,5 @@
-#ifndef _LSM_PARAMS_H__
-#define _LSM_PARAMS_H__
+#ifndef _UAPI_LSM_PARAMS_H__
+#define _UAPI_LSM_PARAMS_H__
 
 #define LSM_POLLING_ENABLE_SUPPORT
 #define LSM_EVENT_TIMESTAMP_MODE_SUPPORT
@@ -34,7 +34,8 @@
 #define LSM_POLLING_ENABLE (7)
 #define LSM_DET_EVENT_TYPE (8)
 #define LSM_LAB_CONTROL (9)
-#define LSM_PARAMS_MAX (LSM_LAB_CONTROL + 1)
+#define LSM_GET_CUSTOM_PARAMS (10)
+#define LSM_PARAMS_MAX (LSM_GET_CUSTOM_PARAMS + 1)
 
 #define LSM_EVENT_NON_TIME_STAMP_MODE (0)
 #define LSM_EVENT_TIME_STAMP_MODE (1)
@@ -118,7 +119,7 @@ struct snd_lsm_det_event_type {
 };
 
 struct snd_lsm_sound_model_v2 {
-	__u8 *data;
+	__u8 __user *data;
 	__u8 *confidence_level;
 	__u32 data_size;
 	enum lsm_detection_mode detection_mode;
@@ -202,7 +203,7 @@ struct lsm_params_info {
 	__u32 module_id;
 	__u32 param_id;
 	__u32 param_size;
-	__u8 *param_data;
+	__u8 __user *param_data;
 	uint32_t param_type;
 };
 
@@ -232,7 +233,7 @@ struct lsm_params_info_v2 {
 	__u32 module_id;
 	__u32 param_id;
 	__u32 param_size;
-	__u8 *param_data;
+	__u8 __user *param_data;
 	uint32_t param_type;
 	__u16 instance_id;
 	__u16 stage_idx;
@@ -249,7 +250,7 @@ struct lsm_params_info_v2 {
  *	       num_params * sizeof(struct lsm_parms_info)
  */
 struct snd_lsm_module_params {
-	__u8 *params;
+	__u8 __user *params;
 	__u32 num_params;
 	__u32 data_size;
 };
@@ -282,7 +283,30 @@ struct snd_lsm_input_hw_params {
 	__u32 sample_rate;
 	__u16 bit_width;
 	__u16 num_channels;
-} __attribute__((packed));
+} __packed;
+
+/*
+ * Param get info  for each parameter type
+ * add "for SNDRV_LSM_GET_MODULE_PARAMS ioctl"
+ * Existing member variables:
+ * @module_id: Module to which parameter is to be set
+ * @instance_id: instance id of the param to which parameter is to be set
+ * @param_id: Parameter that is to be set
+ * @param_size: size of requested param
+ * @param_type: Parameter type as defined in values upto LSM_PARAMS_MAX
+ * @stage_idx: detection stage for which the param is applicable
+ * @payload: memory where requested param info will be populated
+ */
+struct lsm_params_get_info {
+	__u32 module_id;
+	__u16 instance_id;
+	__u16 reserved;
+	__u32 param_id;
+	__u32 param_size;
+	uint32_t param_type;
+	__u16 stage_idx;
+	__u8 payload[0];
+} __packed;
 
 #define SNDRV_LSM_DEREG_SND_MODEL _IOW('U', 0x01, int)
 #define SNDRV_LSM_EVENT_STATUS	_IOW('U', 0x02, struct snd_lsm_event_status)
@@ -311,5 +335,6 @@ struct snd_lsm_input_hw_params {
 					struct snd_lsm_session_data_v2)
 #define SNDRV_LSM_SET_MODULE_PARAMS_V2 _IOW('U', 0x13, \
 					struct snd_lsm_module_params)
-
+#define SNDRV_LSM_GET_MODULE_PARAMS _IOWR('U', 0x14, \
+					struct lsm_params_get_info)
 #endif

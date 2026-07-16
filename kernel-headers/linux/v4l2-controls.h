@@ -1,24 +1,70 @@
 /* SPDX-License-Identifier: ((GPL-2.0+ WITH Linux-syscall-note) OR BSD-3-Clause) */
-
+/*
+ *  Video for Linux Two controls header file
+ *
+ *  Copyright (C) 1999-2012 the contributors
+ *
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  Alternatively you can redistribute this file under the terms of the
+ *  BSD license as stated below:
+ *
+ *  Redistribution and use in source and binary forms, with or without
+ *  modification, are permitted provided that the following conditions
+ *  are met:
+ *  1. Redistributions of source code must retain the above copyright
+ *     notice, this list of conditions and the following disclaimer.
+ *  2. Redistributions in binary form must reproduce the above copyright
+ *     notice, this list of conditions and the following disclaimer in
+ *     the documentation and/or other materials provided with the
+ *     distribution.
+ *  3. The names of its contributors may not be used to endorse or promote
+ *     products derived from this software without specific prior written
+ *     permission.
+ *
+ *  THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ *  "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+ *  LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+ *  A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ *  OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ *  SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED
+ *  TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ *  PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ *  LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+ *  NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+ *  SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ *  The contents of this header was split off from videodev2.h. All control
+ *  definitions should be added to this header, which is included by
+ *  videodev2.h.
+ */
 
 #ifndef __LINUX_V4L2_CONTROLS_H
 #define __LINUX_V4L2_CONTROLS_H
 
+/* Control classes */
+#define V4L2_CTRL_CLASS_USER		0x00980000	/* Old-style 'user' controls */
+#define V4L2_CTRL_CLASS_MPEG		0x00990000	/* MPEG-compression controls */
+#define V4L2_CTRL_CLASS_CAMERA		0x009a0000	/* Camera class controls */
+#define V4L2_CTRL_CLASS_FM_TX		0x009b0000	/* FM Modulator controls */
+#define V4L2_CTRL_CLASS_FLASH		0x009c0000	/* Camera flash controls */
+#define V4L2_CTRL_CLASS_JPEG		0x009d0000	/* JPEG-compression controls */
+#define V4L2_CTRL_CLASS_IMAGE_SOURCE	0x009e0000	/* Image source controls */
+#define V4L2_CTRL_CLASS_IMAGE_PROC	0x009f0000	/* Image processing controls */
+#define V4L2_CTRL_CLASS_DV		0x00a00000	/* Digital Video controls */
+#define V4L2_CTRL_CLASS_FM_RX		0x00a10000	/* FM Receiver controls */
+#define V4L2_CTRL_CLASS_RF_TUNER	0x00a20000	/* RF tuner controls */
+#define V4L2_CTRL_CLASS_DETECT		0x00a30000	/* Detection controls */
 
-#define V4L2_CTRL_CLASS_USER		0x00980000	
-#define V4L2_CTRL_CLASS_MPEG		0x00990000	
-#define V4L2_CTRL_CLASS_CAMERA		0x009a0000	
-#define V4L2_CTRL_CLASS_FM_TX		0x009b0000	
-#define V4L2_CTRL_CLASS_FLASH		0x009c0000	
-#define V4L2_CTRL_CLASS_JPEG		0x009d0000	
-#define V4L2_CTRL_CLASS_IMAGE_SOURCE	0x009e0000	
-#define V4L2_CTRL_CLASS_IMAGE_PROC	0x009f0000	
-#define V4L2_CTRL_CLASS_DV		0x00a00000	
-#define V4L2_CTRL_CLASS_FM_RX		0x00a10000	
-#define V4L2_CTRL_CLASS_RF_TUNER	0x00a20000	
-#define V4L2_CTRL_CLASS_DETECT		0x00a30000	
-
-
+/* User-class control IDs */
 
 #define V4L2_CID_BASE			(V4L2_CTRL_CLASS_USER | 0x900)
 #define V4L2_CID_USER_BASE		V4L2_CID_BASE
@@ -33,13 +79,13 @@
 #define V4L2_CID_AUDIO_TREBLE		(V4L2_CID_BASE+8)
 #define V4L2_CID_AUDIO_MUTE		(V4L2_CID_BASE+9)
 #define V4L2_CID_AUDIO_LOUDNESS		(V4L2_CID_BASE+10)
-#define V4L2_CID_BLACK_LEVEL		(V4L2_CID_BASE+11) 
+#define V4L2_CID_BLACK_LEVEL		(V4L2_CID_BASE+11) /* Deprecated */
 #define V4L2_CID_AUTO_WHITE_BALANCE	(V4L2_CID_BASE+12)
 #define V4L2_CID_DO_WHITE_BALANCE	(V4L2_CID_BASE+13)
 #define V4L2_CID_RED_BALANCE		(V4L2_CID_BASE+14)
 #define V4L2_CID_BLUE_BALANCE		(V4L2_CID_BASE+15)
 #define V4L2_CID_GAMMA			(V4L2_CID_BASE+16)
-#define V4L2_CID_WHITENESS		(V4L2_CID_GAMMA) 
+#define V4L2_CID_WHITENESS		(V4L2_CID_GAMMA) /* Deprecated */
 #define V4L2_CID_EXPOSURE		(V4L2_CID_BASE+17)
 #define V4L2_CID_AUTOGAIN		(V4L2_CID_BASE+18)
 #define V4L2_CID_GAIN			(V4L2_CID_BASE+19)
@@ -95,57 +141,71 @@ enum v4l2_colorfx {
 #define V4L2_CID_ALPHA_COMPONENT		(V4L2_CID_BASE+41)
 #define V4L2_CID_COLORFX_CBCR			(V4L2_CID_BASE+42)
 
-
+/* last CID + 1 */
 #define V4L2_CID_LASTP1                         (V4L2_CID_BASE+43)
 
+/* USER-class private control IDs */
 
-
-
+/* The base for the meye driver controls. See linux/meye.h for the list
+ * of controls. We reserve 16 controls for this driver. */
 #define V4L2_CID_USER_MEYE_BASE			(V4L2_CID_USER_BASE + 0x1000)
 
-
+/* The base for the bttv driver controls.
+ * We reserve 32 controls for this driver. */
 #define V4L2_CID_USER_BTTV_BASE			(V4L2_CID_USER_BASE + 0x1010)
 
 
-
+/* The base for the s2255 driver controls.
+ * We reserve 16 controls for this driver. */
 #define V4L2_CID_USER_S2255_BASE		(V4L2_CID_USER_BASE + 0x1030)
 
-
+/*
+ * The base for the si476x driver controls. See include/media/drv-intf/si476x.h
+ * for the list of controls. Total of 16 controls is reserved for this driver
+ */
 #define V4L2_CID_USER_SI476X_BASE		(V4L2_CID_USER_BASE + 0x1040)
 
-
+/* The base for the TI VPE driver controls. Total of 16 controls is reserved for
+ * this driver */
 #define V4L2_CID_USER_TI_VPE_BASE		(V4L2_CID_USER_BASE + 0x1050)
 
-
+/* The base for the saa7134 driver controls.
+ * We reserve 16 controls for this driver. */
 #define V4L2_CID_USER_SAA7134_BASE		(V4L2_CID_USER_BASE + 0x1060)
 
-
+/* The base for the adv7180 driver controls.
+ * We reserve 16 controls for this driver. */
 #define V4L2_CID_USER_ADV7180_BASE		(V4L2_CID_USER_BASE + 0x1070)
 
-
+/* The base for the tc358743 driver controls.
+ * We reserve 16 controls for this driver. */
 #define V4L2_CID_USER_TC358743_BASE		(V4L2_CID_USER_BASE + 0x1080)
 
-
+/* The base for the max217x driver controls.
+ * We reserve 32 controls for this driver
+ */
 #define V4L2_CID_USER_MAX217X_BASE		(V4L2_CID_USER_BASE + 0x1090)
 
-
+/* The base for the imx driver controls.
+ * We reserve 16 controls for this driver. */
 #define V4L2_CID_USER_IMX_BASE			(V4L2_CID_USER_BASE + 0x10b0)
 
-
-
+/* MPEG-class control IDs */
+/* The MPEG controls are applicable to all codec controls
+ * and the 'MPEG' part of the define is historical */
 
 #define V4L2_CID_MPEG_BASE			(V4L2_CTRL_CLASS_MPEG | 0x900)
 #define V4L2_CID_MPEG_CLASS			(V4L2_CTRL_CLASS_MPEG | 1)
 
-
+/*  MPEG streams, specific to multiplexed streams */
 #define V4L2_CID_MPEG_STREAM_TYPE		(V4L2_CID_MPEG_BASE+0)
 enum v4l2_mpeg_stream_type {
-	V4L2_MPEG_STREAM_TYPE_MPEG2_PS   = 0, 
-	V4L2_MPEG_STREAM_TYPE_MPEG2_TS   = 1, 
-	V4L2_MPEG_STREAM_TYPE_MPEG1_SS   = 2, 
-	V4L2_MPEG_STREAM_TYPE_MPEG2_DVD  = 3, 
-	V4L2_MPEG_STREAM_TYPE_MPEG1_VCD  = 4, 
-	V4L2_MPEG_STREAM_TYPE_MPEG2_SVCD = 5, 
+	V4L2_MPEG_STREAM_TYPE_MPEG2_PS   = 0, /* MPEG-2 program stream */
+	V4L2_MPEG_STREAM_TYPE_MPEG2_TS   = 1, /* MPEG-2 transport stream */
+	V4L2_MPEG_STREAM_TYPE_MPEG1_SS   = 2, /* MPEG-1 system stream */
+	V4L2_MPEG_STREAM_TYPE_MPEG2_DVD  = 3, /* MPEG-2 DVD-compatible stream */
+	V4L2_MPEG_STREAM_TYPE_MPEG1_VCD  = 4, /* MPEG-1 VCD-compatible stream */
+	V4L2_MPEG_STREAM_TYPE_MPEG2_SVCD = 5, /* MPEG-2 SVCD-compatible stream */
 };
 #define V4L2_CID_MPEG_STREAM_PID_PMT		(V4L2_CID_MPEG_BASE+1)
 #define V4L2_CID_MPEG_STREAM_PID_AUDIO		(V4L2_CID_MPEG_BASE+2)
@@ -155,11 +215,11 @@ enum v4l2_mpeg_stream_type {
 #define V4L2_CID_MPEG_STREAM_PES_ID_VIDEO	(V4L2_CID_MPEG_BASE+6)
 #define V4L2_CID_MPEG_STREAM_VBI_FMT		(V4L2_CID_MPEG_BASE+7)
 enum v4l2_mpeg_stream_vbi_fmt {
-	V4L2_MPEG_STREAM_VBI_FMT_NONE = 0,  
-	V4L2_MPEG_STREAM_VBI_FMT_IVTV = 1,  
+	V4L2_MPEG_STREAM_VBI_FMT_NONE = 0,  /* No VBI in the MPEG stream */
+	V4L2_MPEG_STREAM_VBI_FMT_IVTV = 1,  /* VBI in private packets, IVTV format */
 };
 
-
+/*  MPEG audio controls specific to multiplexed streams  */
 #define V4L2_CID_MPEG_AUDIO_SAMPLING_FREQ	(V4L2_CID_MPEG_BASE+100)
 enum v4l2_mpeg_audio_sampling_freq {
 	V4L2_MPEG_AUDIO_SAMPLING_FREQ_44100 = 0,
@@ -285,7 +345,7 @@ enum v4l2_mpeg_audio_dec_playback {
 };
 #define V4L2_CID_MPEG_AUDIO_DEC_MULTILINGUAL_PLAYBACK (V4L2_CID_MPEG_BASE+113)
 
-
+/*  MPEG video controls specific to multiplexed streams */
 #define V4L2_CID_MPEG_VIDEO_ENCODING		(V4L2_CID_MPEG_BASE+200)
 enum v4l2_mpeg_video_encoding {
 	V4L2_MPEG_VIDEO_ENCODING_MPEG_1     = 0,
@@ -305,11 +365,11 @@ enum v4l2_mpeg_video_aspect {
 #define V4L2_CID_MPEG_VIDEO_PULLDOWN		(V4L2_CID_MPEG_BASE+205)
 #define V4L2_CID_MPEG_VIDEO_BITRATE_MODE	(V4L2_CID_MPEG_BASE+206)
 enum v4l2_mpeg_video_bitrate_mode {
-	
+	/* CFR Modes */
 	V4L2_MPEG_VIDEO_BITRATE_MODE_VBR = 0,
 	V4L2_MPEG_VIDEO_BITRATE_MODE_CBR = 1,
 	V4L2_MPEG_VIDEO_BITRATE_MODE_MBR = 2,
-	
+	/* VFR Modes */
 	V4L2_MPEG_VIDEO_BITRATE_MODE_CBR_VFR = 3,
 	V4L2_MPEG_VIDEO_BITRATE_MODE_MBR_VFR = 4,
 	V4L2_MPEG_VIDEO_BITRATE_MODE_CQ = 5,
@@ -512,7 +572,10 @@ enum v4l2_mpeg_video_mpeg4_profile {
 };
 #define V4L2_CID_MPEG_VIDEO_MPEG4_QPEL		(V4L2_CID_MPEG_BASE+407)
 
-
+/*  Control IDs for VP8 streams
+ *  Although VP8 is not part of MPEG we add these controls to the MPEG class
+ *  as that class is already handling other video compression standards
+ */
 #define V4L2_CID_MPEG_VIDEO_VPX_NUM_PARTITIONS		(V4L2_CID_MPEG_BASE+500)
 enum v4l2_vp8_num_partitions {
 	V4L2_CID_MPEG_VIDEO_VPX_1_PARTITION	= 0,
@@ -547,7 +610,7 @@ enum v4l2_mpeg_video_vp8_profile {
 	V4L2_MPEG_VIDEO_VP8_PROFILE_2				= 2,
 	V4L2_MPEG_VIDEO_VP8_PROFILE_3				= 3,
 };
-
+/* Deprecated alias for compatibility reasons. */
 #define V4L2_CID_MPEG_VIDEO_VPX_PROFILE	V4L2_CID_MPEG_VIDEO_VP8_PROFILE
 #define V4L2_CID_MPEG_VIDEO_VP9_PROFILE			(V4L2_CID_MPEG_BASE+512)
 enum v4l2_mpeg_video_vp9_profile {
@@ -557,7 +620,7 @@ enum v4l2_mpeg_video_vp9_profile {
 	V4L2_MPEG_VIDEO_VP9_PROFILE_3				= 3,
 };
 
-
+/* CIDs for HEVC encoding. */
 
 #define V4L2_CID_MPEG_VIDEO_HEVC_MIN_QP		(V4L2_CID_MPEG_BASE + 600)
 #define V4L2_CID_MPEG_VIDEO_HEVC_MAX_QP		(V4L2_CID_MPEG_BASE + 601)
@@ -652,7 +715,7 @@ enum v4l2_cid_mpeg_video_hevc_size_of_length_field {
 #define V4L2_CID_MPEG_VIDEO_REF_NUMBER_FOR_PFRAMES	(V4L2_CID_MPEG_BASE + 643)
 #define V4L2_CID_MPEG_VIDEO_PREPEND_SPSPPS_TO_IDR	(V4L2_CID_MPEG_BASE + 644)
 
-
+/*  MPEG-class control IDs specific to the CX2341x driver as defined by V4L2 */
 #define V4L2_CID_MPEG_CX2341X_BASE				(V4L2_CTRL_CLASS_MPEG | 0x1000)
 #define V4L2_CID_MPEG_CX2341X_VIDEO_SPATIAL_FILTER_MODE		(V4L2_CID_MPEG_CX2341X_BASE+0)
 enum v4l2_mpeg_cx2341x_video_spatial_filter_mode {
@@ -693,7 +756,7 @@ enum v4l2_mpeg_cx2341x_video_median_filter_type {
 #define V4L2_CID_MPEG_CX2341X_VIDEO_CHROMA_MEDIAN_FILTER_TOP	(V4L2_CID_MPEG_CX2341X_BASE+10)
 #define V4L2_CID_MPEG_CX2341X_STREAM_INSERT_NAV_PACKETS		(V4L2_CID_MPEG_CX2341X_BASE+11)
 
-
+/*  MPEG-class control IDs specific to the Samsung MFC 5.1 driver as defined by V4L2 */
 #define V4L2_CID_MPEG_MFC51_BASE				(V4L2_CTRL_CLASS_MPEG | 0x1100)
 
 #define V4L2_CID_MPEG_MFC51_VIDEO_DECODER_H264_DISPLAY_DELAY		(V4L2_CID_MPEG_MFC51_BASE+0)
@@ -720,7 +783,7 @@ enum v4l2_mpeg_mfc51_video_force_frame_type {
 #define V4L2_CID_MPEG_MFC51_VIDEO_H264_ADAPTIVE_RC_STATIC		(V4L2_CID_MPEG_MFC51_BASE+53)
 #define V4L2_CID_MPEG_MFC51_VIDEO_H264_NUM_REF_PIC_FOR_P		(V4L2_CID_MPEG_MFC51_BASE+54)
 
-
+/*  MPEG-class control IDs specific to the msm_vidc driver */
 #define V4L2_CID_MPEG_MSM_VIDC_BASE		(V4L2_CTRL_CLASS_MPEG | 0x2000)
 
 #define V4L2_MPEG_MSM_VIDC_DISABLE 0
@@ -1320,7 +1383,7 @@ enum v4l2_mpeg_vidc_video_flip {
 	V4L2_CID_MPEG_VIDC_VIDEO_FLIP_BOTH = 3,
 };
 
-
+/* HDR SEI INFO related control IDs and definitions*/
 #define V4L2_MPEG_VIDC_VENC_HDR_INFO_ENABLED 1
 #define V4L2_MPEG_VIDC_VENC_HDR_INFO_DISABLED 0
 
@@ -1536,7 +1599,7 @@ enum v4l2_mpeg_vidc_video_h264_vui_timing_info {
 	V4L2_MPEG_VIDC_VIDEO_H264_VUI_TIMING_INFO_ENABLED = 1
 };
 
-
+/*  Camera class control IDs */
 
 #define V4L2_CID_CAMERA_CLASS_BASE	(V4L2_CTRL_CLASS_CAMERA | 0x900)
 #define V4L2_CID_CAMERA_CLASS		(V4L2_CTRL_CLASS_CAMERA | 1)
@@ -1648,7 +1711,7 @@ enum v4l2_auto_focus_range {
 #define V4L2_CID_PAN_SPEED			(V4L2_CID_CAMERA_CLASS_BASE+32)
 #define V4L2_CID_TILT_SPEED			(V4L2_CID_CAMERA_CLASS_BASE+33)
 
-
+/* FM Modulator class control IDs */
 
 #define V4L2_CID_FM_TX_CLASS_BASE		(V4L2_CTRL_CLASS_FM_TX | 0x900)
 #define V4L2_CID_FM_TX_CLASS			(V4L2_CTRL_CLASS_FM_TX | 1)
@@ -1692,7 +1755,7 @@ enum v4l2_preemphasis {
 #define V4L2_CID_TUNE_ANTENNA_CAPACITOR		(V4L2_CID_FM_TX_CLASS_BASE + 114)
 
 
-
+/* Flash and privacy (indicator) light controls */
 
 #define V4L2_CID_FLASH_CLASS_BASE		(V4L2_CTRL_CLASS_FLASH | 0x900)
 #define V4L2_CID_FLASH_CLASS			(V4L2_CTRL_CLASS_FLASH | 1)
@@ -1734,7 +1797,7 @@ enum v4l2_flash_strobe_source {
 #define V4L2_CID_FLASH_READY			(V4L2_CID_FLASH_CLASS_BASE + 12)
 
 
-
+/* JPEG-class control IDs */
 
 #define V4L2_CID_JPEG_CLASS_BASE		(V4L2_CTRL_CLASS_JPEG | 0x900)
 #define V4L2_CID_JPEG_CLASS			(V4L2_CTRL_CLASS_JPEG | 1)
@@ -1759,7 +1822,7 @@ enum v4l2_jpeg_chroma_subsampling {
 #define	V4L2_JPEG_ACTIVE_MARKER_DHT		(1 << 18)
 
 
-
+/* Image source controls */
 #define V4L2_CID_IMAGE_SOURCE_CLASS_BASE	(V4L2_CTRL_CLASS_IMAGE_SOURCE | 0x900)
 #define V4L2_CID_IMAGE_SOURCE_CLASS		(V4L2_CTRL_CLASS_IMAGE_SOURCE | 1)
 
@@ -1772,7 +1835,7 @@ enum v4l2_jpeg_chroma_subsampling {
 #define V4L2_CID_TEST_PATTERN_GREENB		(V4L2_CID_IMAGE_SOURCE_CLASS_BASE + 7)
 
 
-
+/* Image processing controls */
 
 #define V4L2_CID_IMAGE_PROC_CLASS_BASE		(V4L2_CTRL_CLASS_IMAGE_PROC | 0x900)
 #define V4L2_CID_IMAGE_PROC_CLASS		(V4L2_CTRL_CLASS_IMAGE_PROC | 1)
@@ -1783,7 +1846,7 @@ enum v4l2_jpeg_chroma_subsampling {
 #define V4L2_CID_DEINTERLACING_MODE		(V4L2_CID_IMAGE_PROC_CLASS_BASE + 4)
 #define V4L2_CID_DIGITAL_GAIN			(V4L2_CID_IMAGE_PROC_CLASS_BASE + 5)
 
-
+/*  DV-class control IDs defined by V4L2 */
 #define V4L2_CID_DV_CLASS_BASE			(V4L2_CTRL_CLASS_DV | 0x900)
 #define V4L2_CID_DV_CLASS			(V4L2_CTRL_CLASS_DV | 1)
 
@@ -1848,7 +1911,7 @@ enum v4l2_deemphasis {
 #define V4L2_CID_RF_TUNER_PLL_LOCK			(V4L2_CID_RF_TUNER_CLASS_BASE + 91)
 
 
-
+/*  Detection-class control IDs defined by V4L2 */
 #define V4L2_CID_DETECT_CLASS_BASE		(V4L2_CTRL_CLASS_DETECT | 0x900)
 #define V4L2_CID_DETECT_CLASS			(V4L2_CTRL_CLASS_DETECT | 1)
 

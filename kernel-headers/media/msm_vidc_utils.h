@@ -7,32 +7,32 @@
 #define MSM_VIDC_EXTRADATA_NONE 0x00000000
 struct msm_vidc_extradata_header {
 	__u32 size;
-	__u32 version; 
-	__u32 port_index; 
-	__u32 type; 
+	__u32 version; /** Keeping binary compatibility */
+	__u32 port_index; /* with firmware and OpenMAX IL **/
+	__u32 type; /* msm_vidc_extradata_type */
 	__u32 data_size;
 	__u32 data[1];
 };
 
-
+/* msm_vidc_interlace_type */
 #define MSM_VIDC_INTERLACE_FRAME_PROGRESSIVE 0x01
 #define MSM_VIDC_INTERLACE_INTERLEAVE_FRAME_TOPFIELDFIRST 0x02
 #define MSM_VIDC_INTERLACE_INTERLEAVE_FRAME_BOTTOMFIELDFIRST 0x04
 #define MSM_VIDC_INTERLACE_FRAME_TOPFIELDFIRST 0x08
 #define MSM_VIDC_INTERLACE_FRAME_BOTTOMFIELDFIRST 0x10
 #define MSM_VIDC_INTERLACE_FRAME_MBAFF 0x20
-
+/* Color formats */
 #define MSM_VIDC_HAL_INTERLACE_COLOR_FORMAT_NV12	0x2
 #define MSM_VIDC_HAL_INTERLACE_COLOR_FORMAT_NV12_UBWC	0x8002
 #define MSM_VIDC_EXTRADATA_INTERLACE_VIDEO 0x00000002
 struct msm_vidc_interlace_payload {
-	__u32 format; 
+	__u32 format; /* Interlace format */
 	__u32 color_format;
 };
 
 #define MSM_VIDC_EXTRADATA_FRAME_RATE 0x00000007
 struct msm_vidc_framerate_payload {
-	__u32 frame_rate; 
+	__u32 frame_rate; /*In Q16 format */
 };
 
 #define MSM_VIDC_EXTRADATA_TIMESTAMP 0x00000005
@@ -165,8 +165,8 @@ struct msm_vidc_roi_qp_payload {
 
 #define MSM_VIDC_EXTRADATA_ROI_QP 0x00000013
 struct msm_vidc_roi_deltaqp_payload {
-	__u32 b_roi_info; 
-	__u32 mbi_info_size; 
+	__u32 b_roi_info; /*Enable/Disable*/
+	__u32 mbi_info_size; /*Size of QP data*/
 	__u32 data[1];
 };
 
@@ -197,7 +197,7 @@ struct msm_vidc_enc_cvp_metadata_payload {
 	__u32 data[256];
 };
 
-
+/* video_format */
 #define MSM_VIDC_COMPONENT 0
 #define MSM_VIDC_PAL 1
 #define MSM_VIDC_NTSC 2
@@ -207,8 +207,8 @@ struct msm_vidc_enc_cvp_metadata_payload {
 #define MSM_VIDC_RESERVED_1_FORMAT 6
 #define MSM_VIDC_RESERVED_2_FORMAT 7
 
-
-
+/* See colour_primaries of ISO/IEC 14496 for significance */
+/* color_primaries values */
 #define MSM_VIDC_RESERVED_1 0
 #define MSM_VIDC_BT709_5 1
 #define MSM_VIDC_UNSPECIFIED 2
@@ -221,7 +221,7 @@ struct msm_vidc_enc_cvp_metadata_payload {
 #define MSM_VIDC_GENERIC_FILM 8
 #define MSM_VIDC_BT2020 9
 
-
+/* matrix_coeffs values */
 #define MSM_VIDC_MATRIX_RGB 0
 #define MSM_VIDC_MATRIX_BT_709_5 1
 #define MSM_VIDC_MATRIX_UNSPECIFIED 2
@@ -236,7 +236,7 @@ struct msm_vidc_enc_cvp_metadata_payload {
 #define MSM_VIDC_MATRIX_BT_2020 9
 #define MSM_VIDC_MATRIX_BT_2020_CONST 10
 
-
+/* transfer_char values */
 #define MSM_VIDC_TRANSFER_RESERVED_1 0
 #define MSM_VIDC_TRANSFER_BT709_5 1
 #define MSM_VIDC_TRANSFER_UNSPECIFIED 2
@@ -292,7 +292,7 @@ struct msm_vidc_mpeg2_seqdisp_payload {
 	__u32 disp_height;
 };
 
-
+/* VPx color_space values */
 #define MSM_VIDC_CS_UNKNOWN 0
 #define MSM_VIDC_CS_BT_601 1
 #define MSM_VIDC_CS_BT_709 2
@@ -310,34 +310,37 @@ struct msm_vidc_vpx_colorspace_payload {
 };
 
 #define MSM_VIDC_EXTRADATA_METADATA_LTRINFO 0x7F100004
-
+/* Don't use the #define below. It is to bypass checkpatch */
 #define LTRINFO MSM_VIDC_EXTRADATA_METADATA_LTRINFO
 struct msm_vidc_metadata_ltr_payload {
 	__u32 ltr_use_mark;
 };
 
-
+/* ptr[2]: event_notify: pixel_depth */
 #define MSM_VIDC_BIT_DEPTH_8 0
 #define MSM_VIDC_BIT_DEPTH_10 1
 #define MSM_VIDC_BIT_DEPTH_UNSUPPORTED 0XFFFFFFFF
 
-
+/*  ptr[3]: event_notify: pic_struct */
 #define MSM_VIDC_PIC_STRUCT_MAYBE_INTERLACED 0x0
 #define MSM_VIDC_PIC_STRUCT_PROGRESSIVE 0x1
 
-
+/*default when layer ID isn't specified*/
 #define MSM_VIDC_ALL_LAYER_ID 0xFF
 
-static inline unsigned int VENUS_EXTRADATA_SIZE(int width, int height)
+static __inline__ unsigned int VENUS_EXTRADATA_SIZE(int width, int height)
 {
 	(void)height;
 	(void)width;
 
-	
+	/*
+	 * In the future, calculate the size based on the w/h but just
+	 * hardcode it for now since 16K satisfies all current usecases.
+	 */
 	return 16 * 1024;
 }
 
-
+/* V4L2_CID_MPEG_VIDC_VENC_HDR_INFO payload index */
 enum msm_vidc_hdr_info_types {
 	MSM_VIDC_RGB_PRIMARY_00,
 	MSM_VIDC_RGB_PRIMARY_01,

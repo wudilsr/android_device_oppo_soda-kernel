@@ -1,5 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only WITH Linux-syscall-note */
-
+/*
+ * Copyright (c) 2017-2018, The Linux Foundation. All rights reserved.
+ */
 
 #ifndef __UAPI_MSM_SDE_ROTATOR_H__
 #define __UAPI_MSM_SDE_ROTATOR_H__
@@ -8,7 +10,7 @@
 #include <linux/types.h>
 #include <linux/ioctl.h>
 
-
+/* SDE Rotator pixel format definitions */
 #define SDE_PIX_FMT_XRGB_8888		V4L2_PIX_FMT_XBGR32
 #define SDE_PIX_FMT_ARGB_8888		V4L2_PIX_FMT_ABGR32
 #define SDE_PIX_FMT_ABGR_8888		V4L2_PIX_FMT_SDE_ABGR_8888
@@ -70,7 +72,12 @@
 #define SDE_PIX_FMT_Y_CBCR_H2V2_TP10_UBWC	V4L2_PIX_FMT_NV12_TP10_UBWC
 #define SDE_PIX_FMT_Y_CBCR_H2V2_P010_UBWC	V4L2_PIX_FMT_NV12_P010_UBWC
 
-
+/*
+ * struct msm_sde_rotator_fence - v4l2 buffer fence info
+ * @index: id number of the buffer
+ * @type: enum v4l2_buf_type; buffer type
+ * @fd: file descriptor of the fence associated with this buffer
+ */
 struct msm_sde_rotator_fence {
 	__u32	index;
 	__u32	type;
@@ -78,7 +85,13 @@ struct msm_sde_rotator_fence {
 	__u32	reserved[5];
 };
 
-
+/*
+ * struct msm_sde_rotator_comp_ratio - v4l2 buffer compression ratio
+ * @index: id number of the buffer
+ * @type: enum v4l2_buf_type; buffer type
+ * @numer: numerator of the ratio
+ * @denom: denominator of the ratio
+ */
 struct msm_sde_rotator_comp_ratio {
 	__u32	index;
 	__u32	type;
@@ -87,7 +100,7 @@ struct msm_sde_rotator_comp_ratio {
 	__u32	reserved[4];
 };
 
-
+/* SDE Rotator private ioctl ID */
 #define VIDIOC_G_SDE_ROTATOR_FENCE \
 	_IOWR('V', BASE_VIDIOC_PRIVATE + 10, struct msm_sde_rotator_fence)
 #define VIDIOC_S_SDE_ROTATOR_FENCE \
@@ -97,10 +110,13 @@ struct msm_sde_rotator_comp_ratio {
 #define VIDIOC_S_SDE_ROTATOR_COMP_RATIO \
 	_IOWR('V', BASE_VIDIOC_PRIVATE + 13, struct msm_sde_rotator_comp_ratio)
 
-
+/* SDE Rotator private control ID's */
 #define V4L2_CID_SDE_ROTATOR_SECURE	(V4L2_CID_USER_BASE + 0x1000)
 
-
+/*
+ * This control Id indicates this context is associated with the
+ * secure camera.
+ */
 #define V4L2_CID_SDE_ROTATOR_SECURE_CAMERA	(V4L2_CID_USER_BASE + 0x2000)
 
-#endif 
+#endif /* __UAPI_MSM_SDE_ROTATOR_H__ */

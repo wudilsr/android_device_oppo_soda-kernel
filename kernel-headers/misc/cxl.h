@@ -1,106 +1,156 @@
-
+/* SPDX-License-Identifier: GPL-2.0+ WITH Linux-syscall-note */
+/*
+ * Copyright 2014 IBM Corp.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * as published by the Free Software Foundation; either version
+ * 2 of the License, or (at your option) any later version.
+ */
 
 #ifndef _MISC_CXL_H
 #define _MISC_CXL_H
 
-#include <linux/pci.h>
-#include <linux/poll.h>
-#include <linux/interrupt.h>
-#include <uapi/misc/cxl.h>
+#include <linux/types.h>
+#include <linux/ioctl.h>
 
 
-
-
-struct cxl_afu *cxl_pci_to_afu(struct pci_dev *dev);
-
-
-unsigned int cxl_pci_to_cfg_record(struct pci_dev *dev);
-
-
-
-
-
-struct cxl_context *cxl_get_context(struct pci_dev *dev);
-
-struct cxl_context *cxl_dev_context_init(struct pci_dev *dev);
-
-int cxl_release_context(struct cxl_context *ctx);
-
-
-int cxl_set_priv(struct cxl_context *ctx, void *priv);
-void *cxl_get_priv(struct cxl_context *ctx);
-
-
-int cxl_allocate_afu_irqs(struct cxl_context *cxl, int num);
-
-void cxl_free_afu_irqs(struct cxl_context *cxl);
-
-
-int cxl_map_afu_irq(struct cxl_context *cxl, int num,
-		    irq_handler_t handler, void *cookie, char *name);
-
-void cxl_unmap_afu_irq(struct cxl_context *cxl, int num, void *cookie);
-
-
-int cxl_start_context(struct cxl_context *ctx, u64 wed,
-		      struct task_struct *task);
-
-int cxl_stop_context(struct cxl_context *ctx);
-
-
-int cxl_afu_reset(struct cxl_context *ctx);
-
-
-void cxl_set_master(struct cxl_context *ctx);
-
-
-void __iomem *cxl_psa_map(struct cxl_context *ctx);
-void cxl_psa_unmap(void __iomem *addr);
-
-
-int cxl_process_element(struct cxl_context *ctx);
-
-
-
-
-struct file *cxl_get_fd(struct cxl_context *ctx, struct file_operations *fops,
-			int *fd);
-
-struct cxl_context *cxl_fops_get_context(struct file *file);
-
-int cxl_start_work(struct cxl_context *ctx,
-		   struct cxl_ioctl_start_work *work);
-
-int cxl_fd_open(struct inode *inode, struct file *file);
-int cxl_fd_release(struct inode *inode, struct file *file);
-long cxl_fd_ioctl(struct file *file, unsigned int cmd, unsigned long arg);
-int cxl_fd_mmap(struct file *file, struct vm_area_struct *vm);
-__poll_t cxl_fd_poll(struct file *file, struct poll_table_struct *poll);
-ssize_t cxl_fd_read(struct file *file, char __user *buf, size_t count,
-			   loff_t *off);
-
-
-void cxl_perst_reloads_same_image(struct cxl_afu *afu,
-				  bool perst_reloads_same_image);
-
-
-ssize_t cxl_read_adapter_vpd(struct pci_dev *dev, void *buf, size_t count);
-
-
-struct cxl_afu_driver_ops {
-	struct cxl_event_afu_driver_reserved *(*fetch_event) (
-						struct cxl_context *ctx);
-	void (*event_delivered) (struct cxl_context *ctx,
-				 struct cxl_event_afu_driver_reserved *event,
-				 int rc);
+struct cxl_ioctl_start_work {
+	__u64 flags;
+	__u64 work_element_descriptor;
+	__u64 amr;
+	__s16 num_interrupts;
+	__u16 tid;
+	__s32 reserved1;
+	__u64 reserved2;
+	__u64 reserved3;
+	__u64 reserved4;
+	__u64 reserved5;
 };
 
+#define CXL_START_WORK_AMR		0x0000000000000001ULL
+#define CXL_START_WORK_NUM_IRQS		0x0000000000000002ULL
+#define CXL_START_WORK_ERR_FF		0x0000000000000004ULL
+#define CXL_START_WORK_TID		0x0000000000000008ULL
+#define CXL_START_WORK_ALL		(CXL_START_WORK_AMR |\
+					 CXL_START_WORK_NUM_IRQS |\
+					 CXL_START_WORK_ERR_FF |\
+					 CXL_START_WORK_TID)
 
-void cxl_set_driver_ops(struct cxl_context *ctx,
-			struct cxl_afu_driver_ops *ops);
 
+/* Possible modes that an afu can be in */
+#define CXL_MODE_DEDICATED   0x1
+#define CXL_MODE_DIRECTED    0x2
 
-void cxl_context_events_pending(struct cxl_context *ctx,
-				unsigned int new_events);
+/* possible flags for the cxl_afu_id flags field */
+#define CXL_AFUID_FLAG_SLAVE    0x1  /* In directed-mode afu is in slave mode */
 
-#endif 
+struct cxl_afu_id {
+	__u64 flags;     /* One of CXL_AFUID_FLAG_X */
+	__u32 card_id;
+	__u32 afu_offset;
+	__u32 afu_mode;  /* one of the CXL_MODE_X */
+	__u32 reserved1;
+	__u64 reserved2;
+	__u64 reserved3;
+	__u64 reserved4;
+	__u64 reserved5;
+	__u64 reserved6;
+};
+
+/* base adapter image header is included in the image */
+#define CXL_AI_NEED_HEADER	0x0000000000000001ULL
+#define CXL_AI_ALL		CXL_AI_NEED_HEADER
+
+#define CXL_AI_HEADER_SIZE 128
+#define CXL_AI_BUFFER_SIZE 4096
+#define CXL_AI_MAX_ENTRIES 256
+#define CXL_AI_MAX_CHUNK_SIZE (CXL_AI_BUFFER_SIZE * CXL_AI_MAX_ENTRIES)
+
+struct cxl_adapter_image {
+	__u64 flags;
+	__u64 data;
+	__u64 len_data;
+	__u64 len_image;
+	__u64 reserved1;
+	__u64 reserved2;
+	__u64 reserved3;
+	__u64 reserved4;
+};
+
+/* ioctl numbers */
+#define CXL_MAGIC 0xCA
+/* AFU devices */
+#define CXL_IOCTL_START_WORK		_IOW(CXL_MAGIC, 0x00, struct cxl_ioctl_start_work)
+#define CXL_IOCTL_GET_PROCESS_ELEMENT	_IOR(CXL_MAGIC, 0x01, __u32)
+#define CXL_IOCTL_GET_AFU_ID            _IOR(CXL_MAGIC, 0x02, struct cxl_afu_id)
+/* adapter devices */
+#define CXL_IOCTL_DOWNLOAD_IMAGE        _IOW(CXL_MAGIC, 0x0A, struct cxl_adapter_image)
+#define CXL_IOCTL_VALIDATE_IMAGE        _IOW(CXL_MAGIC, 0x0B, struct cxl_adapter_image)
+
+#define CXL_READ_MIN_SIZE 0x1000 /* 4K */
+
+/* Events from read() */
+enum cxl_event_type {
+	CXL_EVENT_RESERVED      = 0,
+	CXL_EVENT_AFU_INTERRUPT = 1,
+	CXL_EVENT_DATA_STORAGE  = 2,
+	CXL_EVENT_AFU_ERROR     = 3,
+	CXL_EVENT_AFU_DRIVER    = 4,
+};
+
+struct cxl_event_header {
+	__u16 type;
+	__u16 size;
+	__u16 process_element;
+	__u16 reserved1;
+};
+
+struct cxl_event_afu_interrupt {
+	__u16 flags;
+	__u16 irq; /* Raised AFU interrupt number */
+	__u32 reserved1;
+};
+
+struct cxl_event_data_storage {
+	__u16 flags;
+	__u16 reserved1;
+	__u32 reserved2;
+	__u64 addr;
+	__u64 dsisr;
+	__u64 reserved3;
+};
+
+struct cxl_event_afu_error {
+	__u16 flags;
+	__u16 reserved1;
+	__u32 reserved2;
+	__u64 error;
+};
+
+struct cxl_event_afu_driver_reserved {
+	/*
+	 * Defines the buffer passed to the cxl driver by the AFU driver.
+	 *
+	 * This is not ABI since the event header.size passed to the user for
+	 * existing events is set in the read call to sizeof(cxl_event_header)
+	 * + sizeof(whatever event is being dispatched) and the user is already
+	 * required to use a 4K buffer on the read call.
+	 *
+	 * Of course the contents will be ABI, but that's up the AFU driver.
+	 */
+	__u32 data_size;
+	__u8 data[];
+};
+
+struct cxl_event {
+	struct cxl_event_header header;
+	union {
+		struct cxl_event_afu_interrupt irq;
+		struct cxl_event_data_storage fault;
+		struct cxl_event_afu_error afu_error;
+		struct cxl_event_afu_driver_reserved afu_driver_event;
+	};
+};
+
+#endif /* _MISC_CXL_H */

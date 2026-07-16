@@ -1,11 +1,24 @@
 /* SPDX-License-Identifier: GPL-2.0-only WITH Linux-syscall-note */
-
+/*
+ * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
+ */
 
 #ifndef _MSM_DRM_PP_H_
 #define _MSM_DRM_PP_H_
 
 #include <linux/types.h>
-
+/**
+ * struct drm_msm_pcc_coeff - PCC coefficient structure for each color
+ *                            component.
+ * @c: constant coefficient.
+ * @r: red coefficient.
+ * @g: green coefficient.
+ * @b: blue coefficient.
+ * @rg: red green coefficient.
+ * @gb: green blue coefficient.
+ * @rb: red blue coefficient.
+ * @rgb: red blue green coefficient.
+ */
 
 struct drm_msm_pcc_coeff {
 	__u32 c;
@@ -18,7 +31,22 @@ struct drm_msm_pcc_coeff {
 	__u32 rgb;
 };
 
-
+/**
+ * struct drm_msm_pcc - pcc feature structure
+ * @flags: for customizing operations
+ * @r: red coefficients.
+ * @g: green coefficients.
+ * @b: blue coefficients.
+ * @r_rr: second order coefficients
+ * @r_gg: second order coefficients
+ * @r_bb: second order coefficients
+ * @g_rr: second order coefficients
+ * @g_gg: second order coefficients
+ * @g_bb: second order coefficients
+ * @b_rr: second order coefficients
+ * @b_gg: second order coefficients
+ * @b_bb: second order coefficients
+ */
 #define DRM_MSM_PCC3
 #define NUM_STRUCT_MASK (0xFUL << 60)
 struct drm_msm_pcc {
@@ -37,7 +65,10 @@ struct drm_msm_pcc {
 	__u32 b_bb;
 };
 
-
+/* struct drm_msm_pa_vlut - picture adjustment vLUT structure
+ * flags: for customizing vlut operation
+ * val: vLUT values
+ */
 #define PA_VLUT_SIZE 256
 struct drm_msm_pa_vlut {
 	__u64 flags;
@@ -48,7 +79,19 @@ struct drm_msm_pa_vlut {
 #define PA_HSIC_SAT_ENABLE (1 << 1)
 #define PA_HSIC_VAL_ENABLE (1 << 2)
 #define PA_HSIC_CONT_ENABLE (1 << 3)
-
+/**
+ * struct drm_msm_pa_hsic - pa hsic feature structure
+ * @flags: flags for the feature customization, values can be:
+ *         - PA_HSIC_HUE_ENABLE: Enable hue adjustment
+ *         - PA_HSIC_SAT_ENABLE: Enable saturation adjustment
+ *         - PA_HSIC_VAL_ENABLE: Enable value adjustment
+ *         - PA_HSIC_CONT_ENABLE: Enable contrast adjustment
+ *
+ * @hue: hue setting
+ * @saturation: saturation setting
+ * @value: value setting
+ * @contrast: contrast setting
+ */
 #define DRM_MSM_PA_HSIC
 struct drm_msm_pa_hsic {
 	__u64 flags;
@@ -64,7 +107,20 @@ struct drm_msm_pa_hsic {
 #define MEMCOL_PROT_CONT (1 << 3)
 #define MEMCOL_PROT_SIXZONE (1 << 4)
 #define MEMCOL_PROT_BLEND (1 << 5)
-
+/* struct drm_msm_memcol - Memory color feature structure.
+ *                         Skin, sky, foliage features are supported.
+ * @prot_flags: Bit mask for enabling protection feature.
+ * @color_adjust_p0: Adjustment curve.
+ * @color_adjust_p1: Adjustment curve.
+ * @color_adjust_p2: Adjustment curve.
+ * @blend_gain: Blend gain weightage from othe PA features.
+ * @sat_hold: Saturation hold value.
+ * @val_hold: Value hold info.
+ * @hue_region: Hue qualifier.
+ * @sat_region: Saturation qualifier.
+ * @val_region: Value qualifier.
+ * @flags: for customizing operations.
+ */
 #define DRM_MSM_MEMCOL
 struct drm_msm_memcol {
 	__u64 prot_flags;
@@ -85,13 +141,27 @@ struct drm_msm_memcol {
 #define SIXZONE_HUE_ENABLE (1 << 0)
 #define SIXZONE_SAT_ENABLE (1 << 1)
 #define SIXZONE_VAL_ENABLE (1 << 2)
-
+/* struct drm_msm_sixzone_curve - Sixzone HSV adjustment curve structure.
+ * @p0: Hue adjustment.
+ * @p1: Saturation/Value adjustment.
+ */
 struct drm_msm_sixzone_curve {
 	__u32 p1;
 	__u32 p0;
 };
 
-
+/* struct drm_msm_sixzone - Sixzone feature structure.
+ * @flags: for feature customization, values can be:
+ *         - SIXZONE_HUE_ENABLE: Enable hue adjustment
+ *         - SIXZONE_SAT_ENABLE: Enable saturation adjustment
+ *         - SIXZONE_VAL_ENABLE: Enable value adjustment
+ * @threshold: threshold qualifier.
+ * @adjust_p0: Adjustment curve.
+ * @adjust_p1: Adjustment curve.
+ * @sat_hold: Saturation hold info.
+ * @val_hold: Value hold info.
+ * @curve: HSV adjustment curve lut.
+ */
 struct drm_msm_sixzone {
 	__u64 flags;
 	__u32 threshold;
@@ -115,12 +185,27 @@ struct drm_msm_sixzone {
 #define GAMUT_3D_SCALE_OFF_TBL_NUM 3
 #define GAMUT_3D_MAP_EN (1 << 0)
 
-
+/**
+ * struct drm_msm_3d_col - 3d gamut color component structure
+ * @c0: Holds c0 value
+ * @c2_c1: Holds c2/c1 values
+ */
 struct drm_msm_3d_col {
 	__u32 c2_c1;
 	__u32 c0;
 };
-
+/**
+ * struct drm_msm_3d_gamut - 3d gamut feature structure
+ * @flags: flags for the feature values are:
+ *         0 - no map
+ *         GAMUT_3D_MAP_EN - enable map
+ * @mode: lut mode can take following values:
+ *        - GAMUT_3D_MODE_17
+ *        - GAMUT_3D_MODE_5
+ *        - GAMUT_3D_MODE_13
+ * @scale_off: Scale offset table
+ * @col: Color component tables
+ */
 struct drm_msm_3d_gamut {
 	__u64 flags;
 	__u32 mode;
@@ -130,7 +215,14 @@ struct drm_msm_3d_gamut {
 
 #define PGC_TBL_LEN 512
 #define PGC_8B_ROUND (1 << 0)
-
+/**
+ * struct drm_msm_pgc_lut - pgc lut feature structure
+ * @flags: flags for the featue values can be:
+ *         - PGC_8B_ROUND
+ * @c0: color0 component lut
+ * @c1: color1 component lut
+ * @c2: color2 component lut
+ */
 struct drm_msm_pgc_lut {
 	__u64 flags;
 	__u32 c0[PGC_TBL_LEN];
@@ -140,7 +232,19 @@ struct drm_msm_pgc_lut {
 
 #define IGC_TBL_LEN 256
 #define IGC_DITHER_ENABLE (1 << 0)
-
+/**
+ * struct drm_msm_igc_lut - igc lut feature structure
+ * @flags: flags for the feature customization, values can be:
+ *             - IGC_DITHER_ENABLE: Enable dither functionality
+ * @c0: color0 component lut
+ * @c1: color1 component lut
+ * @c2: color2 component lut
+ * @strength: dither strength, considered valid when IGC_DITHER_ENABLE
+ *            is set in flags. Strength value based on source bit width.
+ * @c0_last: color0 lut_last component
+ * @c1_last: color1 lut_last component
+ * @c2_last: color2 lut_last component
+ */
 struct drm_msm_igc_lut {
 	__u64 flags;
 	__u32 c0[IGC_TBL_LEN];
@@ -154,7 +258,11 @@ struct drm_msm_igc_lut {
 #define LAST_LUT 2
 
 #define HIST_V_SIZE 256
-
+/**
+ * struct drm_msm_hist - histogram feature structure
+ * @flags: for customizing operations
+ * @data: histogram data
+ */
 struct drm_msm_hist {
 	__u64 flags;
 	__u32 data[HIST_V_SIZE];
@@ -162,7 +270,11 @@ struct drm_msm_hist {
 
 #define AD4_LUT_GRP0_SIZE 33
 #define AD4_LUT_GRP1_SIZE 32
-
+/*
+ * struct drm_msm_ad4_init - ad4 init structure set by user-space client.
+ *                           Init param values can change based on tuning
+ *                           hence it is passed by user-space clients.
+ */
 struct drm_msm_ad4_init {
 	__u32 init_param_001[AD4_LUT_GRP0_SIZE];
 	__u32 init_param_002[AD4_LUT_GRP0_SIZE];
@@ -241,7 +353,11 @@ struct drm_msm_ad4_init {
 	__u32 init_param_075;
 };
 
-
+/*
+ * struct drm_msm_ad4_cfg - ad4 config structure set by user-space client.
+ *                           Config param values can vary based on tuning,
+ *                           hence it is passed by user-space clients.
+ */
 struct drm_msm_ad4_cfg {
 	__u32 cfg_param_001;
 	__u32 cfg_param_002;
@@ -300,7 +416,16 @@ struct drm_msm_ad4_cfg {
 
 #define DITHER_MATRIX_SZ 16
 
-
+/**
+ * struct drm_msm_dither - dither feature structure
+ * @flags: for customizing operations
+ * @temporal_en: temperal dither enable
+ * @c0_bitdepth: c0 component bit depth
+ * @c1_bitdepth: c1 component bit depth
+ * @c2_bitdepth: c2 component bit depth
+ * @c3_bitdepth: c2 component bit depth
+ * @matrix: dither strength matrix
+ */
 struct drm_msm_dither {
 	__u64 flags;
 	__u32 temporal_en;
@@ -311,7 +436,13 @@ struct drm_msm_dither {
 	__u32 matrix[DITHER_MATRIX_SZ];
 };
 
-
+/**
+ * struct drm_msm_pa_dither - dspp dither feature structure
+ * @flags: for customizing operations
+ * @strength: dither strength
+ * @offset_en: offset enable bit
+ * @matrix: dither data matrix
+ */
 #define DRM_MSM_PA_DITHER
 struct drm_msm_pa_dither {
 	__u64 flags;
@@ -320,7 +451,16 @@ struct drm_msm_pa_dither {
 	__u32 matrix[DITHER_MATRIX_SZ];
 };
 
-
+/**
+ * struct drm_msm_ad4_roi_cfg - ad4 roi params config set
+ * by user-space client.
+ * @h_x - hotizontal direction start
+ * @h_y - hotizontal direction end
+ * @v_x - vertical direction start
+ * @v_y - vertical direction end
+ * @factor_in - the alpha value for inside roi region
+ * @factor_out - the alpha value for outside roi region
+ */
 #define DRM_MSM_AD4_ROI
 struct drm_msm_ad4_roi_cfg {
 	__u32 h_x;
@@ -343,7 +483,9 @@ struct drm_msm_ad4_roi_cfg {
 #define LTM_STATS_SAT (1 << 1)
 #define LTM_STATS_MERGE_SAT (1 << 2)
 
-
+/*
+ * struct drm_msm_ltm_stats_data - LTM stats data structure
+ */
 struct drm_msm_ltm_stats_data {
 	__u32 stats_01[LTM_DATA_SIZE_0][LTM_DATA_SIZE_1];
 	__u32 stats_02[LTM_DATA_SIZE_2];
@@ -365,7 +507,9 @@ struct drm_msm_ltm_stats_data {
 	__u32 cfg_param_04;
 };
 
-
+/*
+ * struct drm_msm_ltm_init_param - LTM init param structure
+ */
 struct drm_msm_ltm_init_param {
 	__u32 init_param_01;
 	__u32 init_param_02;
@@ -373,7 +517,9 @@ struct drm_msm_ltm_init_param {
 	__u32 init_param_04;
 };
 
-
+/*
+ * struct drm_msm_ltm_cfg_param - LTM config param structure
+ */
 struct  drm_msm_ltm_cfg_param {
 	__u32 cfg_param_01;
 	__u32 cfg_param_02;
@@ -383,28 +529,48 @@ struct  drm_msm_ltm_cfg_param {
 	__u32 cfg_param_06;
 };
 
-
+/*
+ * struct drm_msm_ltm_data - LTM data structure
+ */
 struct drm_msm_ltm_data {
 	__u32 data[LTM_DATA_SIZE_0][LTM_DATA_SIZE_3];
 };
 
-
+/*
+ * struct drm_msm_ltm_buffers_crtl - LTM buffer control structure.
+ *                                   This struct will be used to init and
+ *                                   de-init the LTM buffers in driver.
+ * @num_of_buffers: valid number of buffers used
+ * @fds: fd array to for all the valid buffers
+ */
 struct drm_msm_ltm_buffers_ctrl {
 	__u32 num_of_buffers;
 	__u32 fds[LTM_BUFFER_SIZE];
 };
 
-
+/*
+ * struct drm_msm_ltm_buffer - LTM buffer structure.
+ *                             This struct will be passed from driver to user
+ *                             space for LTM stats data notification.
+ * @fd: fd assicated with the buffer that has LTM stats data
+ * @offset: offset from base address that used for alignment
+ * @status status flag for error indication
+ */
 struct drm_msm_ltm_buffer {
 	__u32 fd;
 	__u32 offset;
 	__u32 status;
 };
 
-
+/**
+ * struct drm_msm_ad4_manual_str_cfg - ad4 manual strength config set
+ * by user-space client.
+ * @in_str - strength for inside roi region
+ * @out_str - strength for outside roi region
+ */
 #define DRM_MSM_AD4_MANUAL_STRENGTH
 struct drm_msm_ad4_manual_str_cfg {
 	__u32 in_str;
 	__u32 out_str;
 };
-#endif 
+#endif /* _MSM_DRM_PP_H_ */
