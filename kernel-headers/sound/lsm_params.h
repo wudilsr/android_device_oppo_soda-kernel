@@ -119,7 +119,7 @@ struct snd_lsm_det_event_type {
 };
 
 struct snd_lsm_sound_model_v2 {
-	__u8 __user *data;
+	__u8 *data;
 	__u8 *confidence_level;
 	__u32 data_size;
 	enum lsm_detection_mode detection_mode;
@@ -203,7 +203,7 @@ struct lsm_params_info {
 	__u32 module_id;
 	__u32 param_id;
 	__u32 param_size;
-	__u8 __user *param_data;
+	__u8 *param_data;
 	uint32_t param_type;
 };
 
@@ -233,7 +233,7 @@ struct lsm_params_info_v2 {
 	__u32 module_id;
 	__u32 param_id;
 	__u32 param_size;
-	__u8 __user *param_data;
+	__u8 *param_data;
 	uint32_t param_type;
 	__u16 instance_id;
 	__u16 stage_idx;
@@ -250,7 +250,7 @@ struct lsm_params_info_v2 {
  *	       num_params * sizeof(struct lsm_parms_info)
  */
 struct snd_lsm_module_params {
-	__u8 __user *params;
+	__u8 *params;
 	__u32 num_params;
 	__u32 data_size;
 };

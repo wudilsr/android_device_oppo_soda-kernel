@@ -7,7 +7,7 @@ struct dolby_param_data {
 	int32_t be_id;
 	int32_t param_id;
 	int32_t length;
-	int32_t __user *data;
+	int32_t *data;
 };
 
 struct dolby_param_license {
